@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PPL/CRM</title>
+<style>
+  :root {
+    --bg: #0f0f11;
+    --bg2: #18181c;
+    --bg3: #222228;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0eee8;
+    --text2: #9b9894;
+    --text3: #5c5a57;
+    --accent: #c8a96e;
+    --accent2: #e8c98a;
+    --accent-bg: rgba(200,169,110,0.12);
+    --red: #e05c5c;
+    --green: #5cb87a;
+    --blue: #5c8fe0;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, 'PingFang SC', sans-serif; overflow: hidden; }
+
+  /* Layout */
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  #header { padding: 16px 20px 12px; padding-top: calc(env(safe-area-inset-top, 0px) + 16px); background: var(--bg); border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+  #header h1 { font-size: 13px; font-weight: 600; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; }
+  #header .subtitle { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  #main { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #bottom-nav { display: flex; background: var(--bg2); border-top: 0.5px solid var(--border); padding-bottom: calc(var(--safe-bottom) + 4px); flex-shrink: 0; }
+  #bottom-nav button { flex: 1; padding: 10px 4px; background: none; border: none; color: var(--text3); font-size: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: color 0.15s; }
+  #bottom-nav button.active { color: var(--accent); }
+  #bottom-nav button svg { width: 22px; height: 22px; }
+
+  /* Screens */
+  .screen { display: none; padding: 16px 16px; padding-bottom: 24px; }
+  .screen.active { display: block; }
+
+  /* Dashboard */
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .stat-card { background: var(--bg2); border-radius: var(--radius-sm); padding: 12px 10px; border: 0.5px solid var(--border); }
+  .stat-card .num { font-size: 22px; font-weight: 600; color: var(--accent); }
+  .stat-card .lbl { font-size: 10px; color: var(--text3); margin-top: 3px; letter-spacing: 0.05em; }
+
+  .section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; margin-bottom: 10px; }
+
+  .contact-card { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
+  .contact-card:active { border-color: var(--accent); }
+  .contact-card .row1 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .contact-card .name { font-size: 16px; font-weight: 500; }
+  .contact-card .stage-badge { font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: 600; background: var(--accent-bg); color: var(--accent); border: 0.5px solid rgba(200,169,110,0.3); }
+  .contact-card .scores { display: flex; gap: 12px; }
+  .score-item { display: flex; flex-direction: column; gap: 2px; }
+  .score-item .s-label { font-size: 10px; color: var(--text3); }
+  .score-item .s-val { font-size: 13px; font-weight: 600; }
+  .score-bar { height: 3px; border-radius: 2px; background: var(--bg3); overflow: hidden; margin-top: 2px; width: 60px; }
+  .score-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.3s; }
+  .contact-card .meta { font-size: 11px; color: var(--text3); margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; background: var(--bg3); color: var(--text2); border: 0.5px solid var(--border); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; margin-bottom: 6px; color: var(--text2); }
+  .empty-state small { font-size: 12px; }
+
+  /* Add Contact Screen */
+  .form-section { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 16px; margin-bottom: 14px; }
+  .form-section-title { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 15px; padding: 10px 12px; outline: none; font-family: inherit;
+    -webkit-appearance: none; appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: none; min-height: 100px; line-height: 1.5; }
+  .field select option { background: var(--bg3); }
+
+  .ai-parse-btn { width: 100%; padding: 13px; background: var(--accent-bg); border: 0.5px solid rgba(200,169,110,0.4); border-radius: var(--radius); color: var(--accent); font-size: 15px; font-weight: 600; cursor: pointer; letter-spacing: 0.02em; transition: all 0.15s; }
+  .ai-parse-btn:active { background: rgba(200,169,110,0.2); }
+  .ai-parse-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .submit-btn { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: var(--radius); color: #1a1410; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px; letter-spacing: 0.02em; }
+  .submit-btn:active { opacity: 0.85; }
+
+  .ai-result-box { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px; border-left: 2px solid var(--accent); font-size: 13px; color: var(--text2); line-height: 1.6; display: none; }
+
+  /* Detail Screen */
+  #detail-screen { padding: 0; }
+  .detail-header { padding: 20px 16px 16px; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); display: flex; align-items: flex-start; gap: 14px; border-bottom: 0.5px solid var(--border); }
+  .detail-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--accent-bg); border: 1.5px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: var(--accent); flex-shrink: 0; }
+  .detail-name { font-size: 20px; font-weight: 600; }
+  .detail-meta { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .detail-stage { font-size: 11px; color: var(--accent); background: var(--accent-bg); border: 0.5px solid rgba(200,169,110,0.3); padding: 3px 10px; border-radius: 20px; display: inline-block; margin-top: 6px; font-weight: 600; }
+  .back-btn { background: none; border: none; color: var(--accent); font-size: 14px; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+  .detail-body { padding: 16px; padding-bottom: 40px; }
+  .detail-section { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 16px; margin-bottom: 14px; }
+  .detail-section-title { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+
+  .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .score-box { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px; }
+  .score-box .sb-val { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .score-box .sb-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .score-box .sb-bar { height: 3px; border-radius: 2px; background: var(--bg); margin-top: 8px; overflow: hidden; }
+  .score-box .sb-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); }
+
+  .factor-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .factor-row:last-child { border-bottom: none; }
+  .factor-row .f-name { color: var(--text2); }
+  .factor-row .f-val { font-weight: 600; }
+  .f-val.pos { color: var(--green); }
+  .f-val.neg { color: var(--red); }
+  .f-val.neu { color: var(--text2); }
+
+  .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .i-label { color: var(--text3); }
+  .info-row .i-val { color: var(--text); font-weight: 500; text-align: right; max-width: 60%; }
+
+  .ai-advice-box { font-size: 14px; color: var(--text2); line-height: 1.7; white-space: pre-wrap; }
+  .ai-advice-btn { background: var(--accent-bg); border: 0.5px solid rgba(200,169,110,0.3); border-radius: var(--radius-sm); padding: 10px 14px; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+  .notes-text { font-size: 13px; color: var(--text2); line-height: 1.6; white-space: pre-wrap; }
+
+  /* Stage selector */
+  .stage-selector { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stage-btn { padding: 6px 12px; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--bg3); color: var(--text2); font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .stage-btn.active { background: var(--accent-bg); color: var(--accent); border-color: rgba(200,169,110,0.4); font-weight: 600; }
+
+  /* Settings screen */
+  .settings-section { background: var(--bg2); border-radius: var(--radius); border: 0.5px solid var(--border); overflow: hidden; margin-bottom: 14px; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid var(--border); cursor: pointer; }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row:active { background: var(--bg3); }
+  .settings-row .s-label { font-size: 15px; }
+  .settings-row .s-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .settings-row svg { width: 18px; height: 18px; color: var(--text3); }
+
+  .api-key-field { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; padding: 10px 12px; outline: none; font-family: inherit; margin-top: 8px; }
+  .api-key-field:focus { border-color: var(--accent); }
+
+  /* Toast */
+  #toast { position: fixed; bottom: calc(80px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg3); color: var(--text); padding: 10px 18px; border-radius: 20px; font-size: 13px; border: 0.5px solid var(--border2); opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; z-index: 100; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Loading spinner */
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(200,169,110,0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0; }
+
+  /* Filter bar */
+  .filter-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text2); font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .filter-chip.active { background: var(--accent-bg); color: var(--accent); border-color: rgba(200,169,110,0.4); font-weight: 600; }
+
+  .search-wrap { margin-bottom: 12px; }
+  .search-input { width: 100%; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 15px; padding: 10px 12px; outline: none; font-family: inherit; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text3); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>PPL / CRM</h1>
+    <div class="subtitle" id="header-sub">人脉管理系统</div>
+  </div>
+
+  <div id="main">
+    <!-- Dashboard -->
+    <div id="dashboard-screen" class="screen active">
+      <div class="stats-row">
+        <div class="stat-card"><div class="num" id="stat-total">0</div><div class="lbl">总联系人</div></div>
+        <div class="stat-card"><div class="num" id="stat-stage4">0</div><div class="lbl">Stage 4+</div></div>
+        <div class="stat-card"><div class="num" id="stat-avg">—</div><div class="lbl">平均招募分</div></div>
+      </div>
+      <div class="search-wrap">
+        <input class="search-input" type="text" id="search-input" placeholder="搜索姓名…" oninput="renderDashboard()">
+      </div>
+      <div class="filter-bar" id="filter-bar">
+        <div class="filter-chip active" data-stage="all" onclick="setFilter(this)">全部</div>
+        <div class="filter-chip" data-stage="1" onclick="setFilter(this)">Stage 1</div>
+        <div class="filter-chip" data-stage="2" onclick="setFilter(this)">Stage 2</div>
+        <div class="filter-chip" data-stage="3" onclick="setFilter(this)">Stage 3</div>
+        <div class="filter-chip" data-stage="4" onclick="setFilter(this)">Stage 4</div>
+        <div class="filter-chip" data-stage="5" onclick="setFilter(this)">Stage 5</div>
+      </div>
+      <div class="section-title">联系人列表</div>
+      <div id="contact-list"></div>
+    </div>
+
+    <!-- Add Contact -->
+    <div id="add-screen" class="screen">
+      <div class="form-section">
+        <div class="form-section-title">AI 快速录入</div>
+        <div class="field">
+          <label>用自然语言描述这个人</label>
+          <textarea id="ai-input" placeholder="例：张伟，32岁，在字节跳动做产品经理，已婚有孩子，租房住，H1B签证。对现在的工作不太满意，最近聊过有想法搞副业…"></textarea>
+        </div>
+        <button class="ai-parse-btn" id="ai-parse-btn" onclick="aiParse()">✦ AI 解析并填充</button>
+        <div class="ai-result-box" id="ai-result-box"></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">基础信息</div>
+        <div class="field"><label>姓名 *</label><input type="text" id="f-name" placeholder="姓名"></div>
+        <div class="field"><label>年龄</label><input type="number" id="f-age" placeholder="岁" min="18" max="80"></div>
+        <div class="field"><label>婚姻状况</label>
+          <select id="f-marital"><option value="">— 选择 —</option><option value="single">未婚</option><option value="married">已婚</option><option value="divorced">离异</option></select>
+        </div>
+        <div class="field"><label>子女</label>
+          <select id="f-kids"><option value="">— 选择 —</option><option value="none">无</option><option value="yes">有</option></select>
+        </div>
+        <div class="field"><label>就业状态</label>
+          <select id="f-employment"><option value="">— 选择 —</option><option value="employed">在职</option><option value="self">自雇/创业</option><option value="unemployed">待业</option><option value="student">学生</option></select>
+        </div>
+        <div class="field"><label>签证类型</label>
+          <select id="f-visa"><option value="">— 选择 —</option><option value="citizen">公民/绿卡</option><option value="h1b">H1B</option><option value="opt">OPT/F1</option><option value="other">其他工签</option><option value="na">不适用</option></select>
+        </div>
+        <div class="field"><label>房贷</label>
+          <select id="f-mortgage"><option value="">— 选择 —</option><option value="yes">有房贷</option><option value="no">无房贷</option></select>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">招募倾向评估（主观）</div>
+        <div class="field"><label>开放度 <span style="color:var(--text3);font-size:11px">（-3 到 +3）</span></label>
+          <input type="number" id="f-openness" placeholder="0" min="-3" max="3" step="0.5"></div>
+        <div class="field"><label>不满足感 <span style="color:var(--text3);font-size:11px">（-3 到 +3）</span></label>
+          <input type="number" id="f-dissatisfaction" placeholder="0" min="-3" max="3" step="0.5"></div>
+        <div class="field"><label>野心 <span style="color:var(--text3);font-size:11px">（-3 到 +3）</span></label>
+          <input type="number" id="f-ambition" placeholder="0" min="-3" max="3" step="0.5"></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">跟进阶段</div>
+        <div class="stage-selector">
+          <div class="stage-btn active" data-val="1" onclick="selectStage(this)">Stage 1</div>
+          <div class="stage-btn" data-val="2" onclick="selectStage(this)">Stage 2</div>
+          <div class="stage-btn" data-val="3" onclick="selectStage(this)">Stage 3</div>
+          <div class="stage-btn" data-val="4" onclick="selectStage(this)">Stage 4</div>
+          <div class="stage-btn" data-val="5" onclick="selectStage(this)">Stage 5</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">备注</div>
+        <div class="field">
+          <textarea id="f-notes" placeholder="见面/通话记录，重要细节…" style="min-height:80px"></textarea>
+        </div>
+      </div>
+
+      <button class="submit-btn" onclick="saveContact()">保存联系人</button>
+      <div style="height:20px"></div>
+    </div>
+
+    <!-- Detail Screen -->
+    <div id="detail-screen" class="screen">
+      <div class="detail-header" id="detail-header"></div>
+      <div class="detail-body" id="detail-body"></div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="screen">
+      <div class="form-section">
+        <div class="form-section-title">API 设置</div>
+        <div class="field">
+          <label>Claude API Key</label>
+          <input class="api-key-field" type="password" id="api-key-input" placeholder="sk-ant-…" value="">
+        </div>
+        <button class="ai-parse-btn" style="margin-top:8px" onclick="saveApiKey()">保存 API Key</button>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-row" onclick="exportData()">
+          <div><div class="s-label">导出数据</div><div class="s-sub">JSON 备份</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16l-4-4h3V4h2v8h3l-4 4zM4 18h16v2H4z"/></svg>
+        </div>
+        <div class="settings-row" onclick="document.getElementById('import-file').click()">
+          <div><div class="s-label">导入数据</div><div class="s-sub">从 JSON 文件恢复</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8l4 4h-3v8h-2v-8H8l4-4zM4 4h16v2H4z"/></svg>
+        </div>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+
+      <div class="settings-section">
+        <div class="settings-row" onclick="clearAll()">
+          <div><div class="s-label" style="color:var(--red)">清空所有数据</div><div class="s-sub">不可恢复</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3h6l1 1h4v2H4V4h4L9 3zM6 7h12l-1 13H7L6 7zm4 2v8m4-8v8"/></svg>
+        </div>
+      </div>
+
+      <div style="padding: 16px; text-align: center; font-size: 11px; color: var(--text3);">PPL/CRM v1.0 · 数据本地存储</div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav">
+    <button class="active" onclick="showScreen('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      总览
+    </button>
+    <button onclick="showScreen('add')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      新增
+    </button>
+    <button onclick="showScreen('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      设置
+    </button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'ppl_crm_contacts';
+const API_KEY_KEY = 'ppl_crm_api_key';
+let contacts = [];
+let currentFilter = 'all';
+let currentDetailId = null;
+let selectedStage = 1;
+
+function load() {
+  try { contacts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { contacts = []; }
+  const key = localStorage.getItem(API_KEY_KEY) || '';
+  document.getElementById('api-key-input').value = key;
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+}
+
+// ---- Scoring ----
+function calcClientScore(c) {
+  let s = 0;
+  // Employment
+  if (c.employment === 'employed') s += 2;
+  else if (c.employment === 'self') s += 1;
+  else if (c.employment === 'unemployed') s -= 1;
+  // Marital
+  if (c.marital === 'married') s += 2;
+  else if (c.marital === 'divorced') s += 1;
+  // Kids
+  if (c.kids === 'yes') s += 2;
+  // Mortgage
+  if (c.mortgage === 'yes') s += 2;
+  // Age
+  const age = parseInt(c.age);
+  if (age >= 28 && age <= 45) s += 2;
+  else if (age >= 25 && age < 28) s += 1;
+  else if (age > 45 && age <= 55) s += 1;
+  // Visa
+  if (c.visa === 'citizen') s += 1;
+  else if (c.visa === 'h1b') s -= 1;
+  else if (c.visa === 'opt') s -= 2;
+  return s;
+}
+
+function calcRecruitScore(c) {
+  let s = 0;
+  s += parseFloat(c.openness || 0);
+  s += parseFloat(c.dissatisfaction || 0);
+  s += parseFloat(c.ambition || 0);
+  // Employment modifier
+  if (c.employment === 'employed') s += 1;
+  else if (c.employment === 'unemployed') s -= 1;
+  // Visa penalty
+  if (c.visa === 'opt') s -= 2;
+  else if (c.visa === 'h1b') s -= 1;
+  return Math.round(s * 10) / 10;
+}
+
+function scoreColor(val) {
+  if (val >= 3) return 'pos';
+  if (val <= -1) return 'neg';
+  return 'neu';
+}
+
+function initials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return name.slice(0, 2);
+  return parts[0][0] + parts[1][0];
+}
+
+// ---- Render Dashboard ----
+function renderDashboard() {
+  const q = document.getElementById('search-input').value.trim().toLowerCase();
+  let list = contacts.filter(c => {
+    if (currentFilter !== 'all' && String(c.stage) !== currentFilter) return false;
+    if (q && !c.name.toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  list.sort((a, b) => calcRecruitScore(b) - calcRecruitScore(a));
+
+  document.getElementById('stat-total').textContent = contacts.length;
+  document.getElementById('stat-stage4').textContent = contacts.filter(c => c.stage >= 4).length;
+  const rscores = contacts.map(c => calcRecruitScore(c));
+  document.getElementById('stat-avg').textContent = rscores.length ? (rscores.reduce((a,b)=>a+b,0)/rscores.length).toFixed(1) : '—';
+
+  const el = document.getElementById('contact-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">◈</div><p>${contacts.length ? '没有符合条件的联系人' : '还没有联系人'}</p><small>${contacts.length ? '换个筛选条件试试' : '点击底部 + 新增第一个'}</small></div>`;
+    return;
+  }
+  el.innerHTML = list.map(c => {
+    const cs = calcClientScore(c);
+    const rs = calcRecruitScore(c);
+    const csBar = Math.min(100, Math.max(0, (cs + 5) / 16 * 100));
+    const rsBar = Math.min(100, Math.max(0, (rs + 9) / 18 * 100));
+    const tags = [c.visa && c.visa !== 'na' ? c.visa.toUpperCase() : null, c.employment, c.marital].filter(Boolean);
+    return `<div class="contact-card" onclick="showDetail('${c.id}')">
+      <div class="row1">
+        <div class="name">${c.name}</div>
+        <div class="stage-badge">S${c.stage}</div>
+      </div>
+      <div class="scores">
+        <div class="score-item">
+          <div class="s-label">客户分</div>
+          <div class="s-val ${scoreColor(cs)}">${cs > 0 ? '+' : ''}${cs}</div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:${csBar}%"></div></div>
+        </div>
+        <div class="score-item">
+          <div class="s-label">招募分</div>
+          <div class="s-val ${scoreColor(rs)}">${rs > 0 ? '+' : ''}${rs}</div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:${rsBar}%"></div></div>
+        </div>
+        ${c.age ? `<div class="score-item"><div class="s-label">年龄</div><div class="s-val neu">${c.age}</div></div>` : ''}
+      </div>
+      ${tags.length ? `<div class="meta">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function setFilter(el) {
+  document.querySelectorAll('.filter-chip').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = el.dataset.stage;
+  renderDashboard();
+}
+
+// ---- Detail ----
+function showDetail(id) {
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  currentDetailId = id;
+  const cs = calcClientScore(c);
+  const rs = calcRecruitScore(c);
+
+  document.getElementById('detail-header').innerHTML = `
+    <button class="back-btn" onclick="showScreen('dashboard')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      返回
+    </button>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="detail-avatar">${initials(c.name)}</div>
+        <div>
+          <div class="detail-name">${c.name}</div>
+          <div class="detail-meta">${[c.age ? c.age+'岁' : '', c.employment, c.visa && c.visa !== 'na' ? c.visa.toUpperCase() : ''].filter(Boolean).join(' · ')}</div>
+          <div class="detail-stage">Stage ${c.stage}</div>
+        </div>
+      </div>
+    </div>`;
+
+  const csBar = Math.min(100, Math.max(0, (cs + 5) / 16 * 100));
+  const rsBar = Math.min(100, Math.max(0, (rs + 9) / 18 * 100));
+
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">综合评分</div>
+      <div class="score-grid">
+        <div class="score-box">
+          <div class="sb-val">${cs > 0 ? '+' : ''}${cs}</div>
+          <div class="sb-label">客户倾向</div>
+          <div class="sb-bar"><div class="sb-bar-fill" style="width:${csBar}%"></div></div>
+        </div>
+        <div class="score-box">
+          <div class="sb-val">${rs > 0 ? '+' : ''}${rs}</div>
+          <div class="sb-label">招募倾向</div>
+          <div class="sb-bar"><div class="sb-bar-fill" style="width:${rsBar}%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">评分明细</div>
+      ${clientFactors(c)}
+      <div style="height:10px"></div>
+      ${recruitFactors(c)}
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">基本信息</div>
+      ${infoRows(c)}
+    </div>
+
+    <div class="detail-section" id="advice-section">
+      <div class="detail-section-title">
+        AI 联络建议
+        <button class="ai-advice-btn" onclick="getAdvice('${id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          生成建议
+        </button>
+      </div>
+      <div id="advice-content" class="ai-advice-box" style="color:var(--text3);font-size:13px">点击"生成建议"获取 AI 分析</div>
+    </div>
+
+    ${c.notes ? `<div class="detail-section">
+      <div class="detail-section-title">备注</div>
+      <div class="notes-text">${escHtml(c.notes)}</div>
+    </div>` : ''}
+
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="ai-parse-btn" style="flex:1" onclick="editContact('${id}')">编辑</button>
+      <button style="flex:0 0 auto;padding:13px 16px;background:rgba(224,92,92,0.1);border:0.5px solid rgba(224,92,92,0.3);border-radius:var(--radius);color:var(--red);font-size:14px;font-weight:600;cursor:pointer" onclick="deleteContact('${id}')">删除</button>
+    </div>
+  `;
+
+  showScreen('detail');
+}
+
+function clientFactors(c) {
+  const rows = [
+    ['就业状态', c.employment === 'employed' ? +2 : c.employment === 'self' ? +1 : c.employment === 'unemployed' ? -1 : 0],
+    ['婚姻状况', c.marital === 'married' ? +2 : c.marital === 'divorced' ? +1 : 0],
+    ['有子女', c.kids === 'yes' ? +2 : 0],
+    ['有房贷', c.mortgage === 'yes' ? +2 : 0],
+    ['年龄段', (() => { const a = parseInt(c.age); if (a >= 28 && a <= 45) return +2; if ((a>=25&&a<28)||(a>45&&a<=55)) return +1; return 0; })()],
+    ['签证', c.visa === 'citizen' ? +1 : c.visa === 'h1b' ? -1 : c.visa === 'opt' ? -2 : 0],
+  ].filter(r => r[1] !== 0);
+  if (!rows.length) return '<div class="factor-row"><span class="f-name" style="color:var(--text3)">暂无客户评分数据</span></div>';
+  return '<div style="font-size:11px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">客户倾向</div>' + rows.map(([n, v]) =>
+    `<div class="factor-row"><span class="f-name">${n}</span><span class="f-val ${v>0?'pos':'neg'}">${v>0?'+':''}${v}</span></div>`
+  ).join('');
+}
+
+function recruitFactors(c) {
+  const rows = [
+    ['开放度', parseFloat(c.openness || 0)],
+    ['不满足感', parseFloat(c.dissatisfaction || 0)],
+    ['野心', parseFloat(c.ambition || 0)],
+    ['就业加成', c.employment === 'employed' ? +1 : c.employment === 'unemployed' ? -1 : 0],
+    ['签证限制', c.visa === 'opt' ? -2 : c.visa === 'h1b' ? -1 : 0],
+  ].filter(r => r[1] !== 0);
+  if (!rows.length) return '<div class="factor-row"><span class="f-name" style="color:var(--text3)">暂无招募评分数据</span></div>';
+  return '<div style="font-size:11px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;margin-top:8px">招募倾向</div>' + rows.map(([n, v]) =>
+    `<div class="factor-row"><span class="f-name">${n}</span><span class="f-val ${v>0?'pos':v<0?'neg':'neu'}">${v>0?'+':''}${v}</span></div>`
+  ).join('');
+}
+
+function infoRows(c) {
+  const map = {
+    'employed': '在职', 'self': '自雇/创业', 'unemployed': '待业', 'student': '学生',
+    'single': '未婚', 'married': '已婚', 'divorced': '离异',
+    'yes': '有', 'no': '无', 'citizen': '公民/绿卡', 'h1b': 'H1B', 'opt': 'OPT/F1', 'other': '其他工签', 'na': '不适用'
+  };
+  const rows = [
+    ['年龄', c.age ? c.age + ' 岁' : null],
+    ['婚姻', map[c.marital]],
+    ['子女', map[c.kids]],
+    ['就业', map[c.employment]],
+    ['签证', map[c.visa]],
+    ['房贷', map[c.mortgage]],
+  ].filter(r => r[1]);
+  return rows.map(([l,v]) => `<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
+}
+
+// ---- AI Parse ----
+async function aiParse() {
+  const text = document.getElementById('ai-input').value.trim();
+  if (!text) { showToast('请先输入描述文字'); return; }
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+  if (!apiKey) { showToast('请先在设置中填入 API Key'); return; }
+
+  const btn = document.getElementById('ai-parse-btn');
+  const box = document.getElementById('ai-result-box');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>解析中…';
+  box.style.display = 'none';
+
+  const prompt = `你是一个CRM数据解析助手。从以下描述中提取联系人信息，以JSON格式返回。只返回JSON，不要任何其他文字。
+
+JSON字段：
+- name: 姓名(string)
+- age: 年龄(number或null)
+- marital: 婚姻状况 single/married/divorced/null
+- kids: 子女 yes/no/null
+- employment: 就业 employed/self/unemployed/student/null
+- visa: 签证 citizen/h1b/opt/other/na/null
+- mortgage: 房贷 yes/no/null
+- openness: 开放度 -3到3的数(null如果描述中没有体现)
+- dissatisfaction: 不满足感 -3到3的数(null如果描述中没有体现)
+- ambition: 野心 -3到3的数(null如果描述中没有体现)
+- notes: 备注(把描述中其他有价值的信息整理成简短备注)
+- parse_summary: 一句话总结你的解析（中文）
+
+描述：${text}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+
+    // Fill fields
+    if (parsed.name) document.getElementById('f-name').value = parsed.name;
+    if (parsed.age) document.getElementById('f-age').value = parsed.age;
+    if (parsed.marital) document.getElementById('f-marital').value = parsed.marital;
+    if (parsed.kids) document.getElementById('f-kids').value = parsed.kids;
+    if (parsed.employment) document.getElementById('f-employment').value = parsed.employment;
+    if (parsed.visa) document.getElementById('f-visa').value = parsed.visa;
+    if (parsed.mortgage) document.getElementById('f-mortgage').value = parsed.mortgage;
+    if (parsed.openness != null) document.getElementById('f-openness').value = parsed.openness;
+    if (parsed.dissatisfaction != null) document.getElementById('f-dissatisfaction').value = parsed.dissatisfaction;
+    if (parsed.ambition != null) document.getElementById('f-ambition').value = parsed.ambition;
+    if (parsed.notes) document.getElementById('f-notes').value = parsed.notes;
+
+    box.textContent = '✦ ' + (parsed.parse_summary || '解析完成，请检查并补充字段');
+    box.style.display = 'block';
+    showToast('解析完成');
+  } catch (e) {
+    box.textContent = '解析失败：' + e.message;
+    box.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '✦ AI 解析并填充';
+}
+
+// ---- AI Advice ----
+async function getAdvice(id) {
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  const apiKey = localStorage.getItem(API_KEY_KEY);
+  if (!apiKey) { showToast('请先在设置中填入 API Key'); return; }
+
+  const btn = document.querySelector('#advice-section .ai-advice-btn');
+  const box = document.getElementById('advice-content');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>分析中…';
+
+  const cs = calcClientScore(c);
+  const rs = calcRecruitScore(c);
+
+  const prompt = `你是一个金融教育类副业项目的人脉跟进顾问。请基于以下联系人信息，给出具体的联络建议。
+
+联系人：${c.name}
+客户倾向分：${cs}（越高越有客户潜力）
+招募倾向分：${rs}（越高越有招募潜力）
+基本信息：${[c.age?`${c.age}岁`:'', c.employment, c.marital, c.kids==='yes'?'有孩子':'', c.mortgage==='yes'?'有房贷':'', c.visa&&c.visa!=='na'?c.visa.toUpperCase():''].filter(Boolean).join('，')}
+当前阶段：Stage ${c.stage}
+备注：${c.notes || '无'}
+
+请给出：
+1. 这个人目前的核心价值点（客户/招募/两者兼有，为什么）
+2. 下一步行动建议（具体、可操作，包括时机、话题切入点）
+3. 需要注意的风险或顾虑点
+
+用简洁的中文回答，每个部分3-5句话即可。`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    box.textContent = data.content[0].text.trim();
+    box.style.color = 'var(--text2)';
+  } catch(e) {
+    box.textContent = '获取建议失败：' + e.message;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>重新生成';
+}
+
+// ---- Save / Edit / Delete ----
+function selectStage(el) {
+  document.querySelectorAll('.stage-btn').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  selectedStage = parseInt(el.dataset.val);
+}
+
+let editingId = null;
+
+function saveContact() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('请填写姓名'); return; }
+
+  const c = {
+    id: editingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name,
+    age: document.getElementById('f-age').value || null,
+    marital: document.getElementById('f-marital').value || null,
+    kids: document.getElementById('f-kids').value || null,
+    employment: document.getElementById('f-employment').value || null,
+    visa: document.getElementById('f-visa').value || null,
+    mortgage: document.getElementById('f-mortgage').value || null,
+    openness: document.getElementById('f-openness').value || null,
+    dissatisfaction: document.getElementById('f-dissatisfaction').value || null,
+    ambition: document.getElementById('f-ambition').value || null,
+    stage: selectedStage,
+    notes: document.getElementById('f-notes').value.trim(),
+    updatedAt: Date.now()
+  };
+
+  if (editingId) {
+    const idx = contacts.findIndex(x => x.id === editingId);
+    if (idx !== -1) contacts[idx] = c;
+    editingId = null;
+  } else {
+    contacts.push(c);
+  }
+
+  save();
+  clearForm();
+  showToast('已保存');
+  showScreen('dashboard');
+}
+
+function editContact(id) {
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  editingId = id;
+  document.getElementById('f-name').value = c.name || '';
+  document.getElementById('f-age').value = c.age || '';
+  document.getElementById('f-marital').value = c.marital || '';
+  document.getElementById('f-kids').value = c.kids || '';
+  document.getElementById('f-employment').value = c.employment || '';
+  document.getElementById('f-visa').value = c.visa || '';
+  document.getElementById('f-mortgage').value = c.mortgage || '';
+  document.getElementById('f-openness').value = c.openness || '';
+  document.getElementById('f-dissatisfaction').value = c.dissatisfaction || '';
+  document.getElementById('f-ambition').value = c.ambition || '';
+  document.getElementById('f-notes').value = c.notes || '';
+  selectedStage = c.stage || 1;
+  document.querySelectorAll('.stage-btn').forEach(e => {
+    e.classList.toggle('active', parseInt(e.dataset.val) === selectedStage);
+  });
+  showScreen('add');
+}
+
+function deleteContact(id) {
+  if (!confirm('确认删除这个联系人？')) return;
+  contacts = contacts.filter(c => c.id !== id);
+  save();
+  showToast('已删除');
+  showScreen('dashboard');
+}
+
+function clearForm() {
+  ['f-name','f-age','f-openness','f-dissatisfaction','f-ambition','f-notes','ai-input'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ['f-marital','f-kids','f-employment','f-visa','f-mortgage'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('ai-result-box').style.display = 'none';
+  document.querySelectorAll('.stage-btn').forEach((e, i) => e.classList.toggle('active', i === 0));
+  selectedStage = 1;
+  editingId = null;
+}
+
+// ---- Import / Export ----
+function exportData() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const blob = new Blob([JSON.stringify(contacts, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ppl_crm_${ts}.json`;
+  a.click();
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error('格式错误');
+      contacts = data;
+      save();
+      showToast(`导入成功，共 ${contacts.length} 条`);
+      renderDashboard();
+    } catch(err) {
+      showToast('导入失败：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  localStorage.setItem(API_KEY_KEY, key);
+  showToast('API Key 已保存');
+}
+
+function clearAll() {
+  if (!confirm('确认清空所有联系人数据？此操作不可恢复。')) return;
+  contacts = [];
+  save();
+  showToast('已清空');
+  renderDashboard();
+}
+
+// ---- Navigation ----
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(name + '-screen').classList.add('active');
+  if (name === 'detail') {
+    document.getElementById('header').style.display = 'none';
+  } else {
+    document.getElementById('header').style.display = '';
+    const idx = ['dashboard','add','settings'].indexOf(name);
+    if (idx !== -1) document.querySelectorAll('#bottom-nav button')[idx].classList.add('active');
+  }
+  document.getElementById('main').scrollTop = 0;
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'add' && !editingId) clearForm();
+}
+
+// ---- Toast ----
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ---- Init ----
+load();
+renderDashboard();
+</script>
+</body>
+</html>

@@ -639,7 +639,7 @@ ${notesText}
 
 用简洁中文，每部分3-5句话。`;
   try {
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     if(data.error) throw new Error(data.error.message);
     box.textContent=data.content[0].text.trim(); box.style.color='var(--text2)';
@@ -671,7 +671,7 @@ async function openWeekly() {
   const prompt=`你是一个金融教育类副业项目的人脉管理助手。今天是${fmtDate(Date.now())}。${weeklyPreset?`\n\n用户的每周建议原则：\n${weeklyPreset}\n`:''}\n\n以下是当前所有跟进中的联系人（不含已成交S5）情况：\n\n${contactsSummary||'暂无跟进中的联系人'}\n\n请生成本周行动建议，要求：\n1. 按优先级排列，最需要行动的排在前面\n2. 每个人的建议要具体可执行，结合他们的 stage、评分和最近互动情况\n3. 考虑联系频率，长时间没联系的需要特别提醒\n4. 整体策略总结放在最后\n\n用简洁中文输出，条理清晰。`;
 
   try {
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     if(data.error) throw new Error(data.error.message);
     content.textContent=data.content[0].text.trim(); content.style.color='var(--text2)';
@@ -774,7 +774,7 @@ async function aiParse() {
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>解析中…';box.style.display='none';
   const prompt=`你是一个CRM数据解析助手。从以下描述中提取联系人信息，以JSON格式返回。只返回JSON，不要任何其他文字。\n\nJSON字段：name(string), age(number|null), marital(single/married/divorced/null), kids(yes/no/null), employment(employed/self/unemployed/student/null), visa(citizen/h1b/opt/other/na/null), mortgage(yes/no/null), openness(-3到3|null), dissatisfaction(-3到3|null), ambition(-3到3|null), notes(string，把有价值的信息整理成简短备注), parse_summary(一句话总结，中文)\n\n描述：${text}`;
   try {
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     if(data.error) throw new Error(data.error.message);
     const parsed=JSON.parse(data.content[0].text.trim().replace(/```json|```/g,'').trim());

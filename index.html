@@ -261,6 +261,8 @@
         <div class="form-section-title">基础信息</div>
         <div class="field"><label>姓名 *</label><input type="text" id="f-name" placeholder="姓名"></div>
         <div class="field"><label>加入日期 <span style="color:var(--text3);font-size:11px">（认识/录入的日期）</span></label><input type="date" id="f-added-date"></div>
+        <div class="field"><label>性别</label>
+          <select id="f-gender"><option value="">— 选择 —</option><option value="male">男</option><option value="female">女</option><option value="other">其他</option></select></div>
         <div class="field"><label>年龄</label><input type="number" id="f-age" placeholder="岁" min="18" max="80"></div>
         <div class="field"><label>婚姻状况</label>
           <select id="f-marital"><option value="">— 选择 —</option><option value="single">未婚</option><option value="married">已婚</option><option value="divorced">离异</option></select></div>
@@ -598,14 +600,14 @@ function recruitFactors(c) {
   return '<div style="font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;margin-top:4px">招募倾向</div>'+rows.map(([n,v])=>`<div class="factor-row"><span class="f-name">${n}</span><span class="f-val ${v>0?'pos':v<0?'neg':'neu'}">${v>0?'+':''}${v}</span></div>`).join('');
 }
 function infoRows(c) {
-  const map={employed:'在职',self:'自雇/创业',unemployed:'待业',student:'学生',single:'未婚',married:'已婚',divorced:'离异',yes:'有',no:'无',none:'无',citizen:'公民/绿卡',h1b:'H1B',opt:'OPT/F1',other:'其他工签',na:'不适用'};
+  const map={employed:'在职',self:'自雇/创业',unemployed:'待业',student:'学生',single:'未婚',married:'已婚',divorced:'离异',yes:'有',no:'无',none:'无',citizen:'公民/绿卡',h1b:'H1B',opt:'OPT/F1',other:'其他工签',na:'不适用',male:'男',female:'女'};
   let addedDateVal = null;
   if (c.addedDate) {
     const d = new Date(c.addedDate);
     const days = Math.floor((Date.now() - d.getTime()) / 86400000);
     addedDateVal = `${c.addedDate}（已认识 ${days} 天）`;
   }
-  return [['加入日期',addedDateVal],['年龄',c.age?c.age+' 岁':null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
+  return [['加入日期',addedDateVal],['性别',map[c.gender]||(c.gender==='other'?'其他':null)],['年龄',c.age?c.age+' 岁':null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
 }
 
 function getApiKey() { return localStorage.getItem(API_KEY_KEY)||''; }
@@ -703,6 +705,7 @@ function saveContact() {
     ambition:document.getElementById('f-ambition').value||null,
     stage:selectedStage,
     notes:existing?existing.notes:[],
+    gender:document.getElementById('f-gender').value||null,
     addedDate:document.getElementById('f-added-date').value||null,
     updatedAt:Date.now()
   };
@@ -724,6 +727,7 @@ function editContact(id) {
   document.getElementById('f-openness').value=c.openness||'';
   document.getElementById('f-dissatisfaction').value=c.dissatisfaction||'';
   document.getElementById('f-ambition').value=c.ambition||'';
+  document.getElementById('f-gender').value=c.gender||'';
   document.getElementById('f-added-date').value=c.addedDate||'';
   selectedStage=c.stage||1;
   document.querySelectorAll('.stage-btn').forEach(e=>e.classList.toggle('active',parseInt(e.dataset.val)===selectedStage));
@@ -737,7 +741,7 @@ function deleteContact(id) {
 
 function clearForm() {
   ['f-name','f-age','f-openness','f-dissatisfaction','f-ambition','ai-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['f-marital','f-kids','f-employment','f-visa','f-mortgage'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-marital','f-kids','f-employment','f-visa','f-mortgage','f-gender'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   // Default added date to today
   const today=new Date();
   const pad=n=>String(n).padStart(2,'0');
@@ -820,7 +824,7 @@ saveContact = function() {
     openness:document.getElementById('f-openness').value||null,
     dissatisfaction:document.getElementById('f-dissatisfaction').value||null,
     ambition:document.getElementById('f-ambition').value||null,
-    stage:selectedStage, notes, addedDate:document.getElementById('f-added-date').value||null, updatedAt:Date.now()
+    stage:selectedStage, notes, gender:document.getElementById('f-gender').value||null, addedDate:document.getElementById('f-added-date').value||null, updatedAt:Date.now()
   };
   if(editingId){const idx=contacts.findIndex(x=>x.id===editingId);if(idx!==-1)contacts[idx]=c;editingId=null;}
   else contacts.push(c);

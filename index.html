@@ -260,6 +260,7 @@
       <div class="form-section">
         <div class="form-section-title">基础信息</div>
         <div class="field"><label>姓名 *</label><input type="text" id="f-name" placeholder="姓名"></div>
+        <div class="field"><label>加入日期 <span style="color:var(--text3);font-size:11px">（认识/录入的日期）</span></label><input type="date" id="f-added-date"></div>
         <div class="field"><label>年龄</label><input type="number" id="f-age" placeholder="岁" min="18" max="80"></div>
         <div class="field"><label>婚姻状况</label>
           <select id="f-marital"><option value="">— 选择 —</option><option value="single">未婚</option><option value="married">已婚</option><option value="divorced">离异</option></select></div>
@@ -527,6 +528,9 @@ function showDetail(id) {
     <div class="detail-section">
       <div class="detail-section-title">跟进记录</div>
       <div class="notes-timeline" id="notes-timeline">${renderNotes(c)}</div>
+      <div style="margin-top:12px">
+        <input type="date" id="note-date" style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:13px;padding:8px 11px;outline:none;font-family:inherit;-webkit-appearance:none;appearance:none;margin-bottom:8px">
+      </div>
       <div class="note-add-row">
         <textarea id="note-input" placeholder="今天的新进展、印象、评价…"></textarea>
         <button class="note-add-btn" onclick="addNote('${id}')">记录</button>
@@ -538,6 +542,9 @@ function showDetail(id) {
     </div>`;
 
   showScreen('detail');
+  // Init note date to today
+  const _td=new Date(),_pad=n=>String(n).padStart(2,'0');
+  document.getElementById('note-date').value=`${_td.getFullYear()}-${_pad(_td.getMonth()+1)}-${_pad(_td.getDate())}`;
 }
 
 function renderNotes(c) {
@@ -556,10 +563,17 @@ function addNote(id) {
   if(!text){showToast('请输入内容');return;}
   const c=contacts.find(x=>x.id===id); if(!c) return;
   if(!Array.isArray(c.notes)) c.notes=[];
-  c.notes.push({ts:Date.now(),text});
+  // Use selected date or today
+  const dateVal=document.getElementById('note-date').value;
+  const ts=dateVal ? new Date(dateVal).setHours(12,0,0,0) : Date.now();
+  c.notes.push({ts,text});
+  c.notes.sort((a,b)=>a.ts-b.ts);
   save();
   input.value='';
   document.getElementById('notes-timeline').innerHTML=renderNotes(c);
+  // Reset date to today
+  const today=new Date(),pad=n=>String(n).padStart(2,'0');
+  document.getElementById('note-date').value=`${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
   showToast('已记录');
 }
 
@@ -585,7 +599,13 @@ function recruitFactors(c) {
 }
 function infoRows(c) {
   const map={employed:'在职',self:'自雇/创业',unemployed:'待业',student:'学生',single:'未婚',married:'已婚',divorced:'离异',yes:'有',no:'无',none:'无',citizen:'公民/绿卡',h1b:'H1B',opt:'OPT/F1',other:'其他工签',na:'不适用'};
-  return [['年龄',c.age?c.age+' 岁':null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
+  let addedDateVal = null;
+  if (c.addedDate) {
+    const d = new Date(c.addedDate);
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    addedDateVal = `${c.addedDate}（已认识 ${days} 天）`;
+  }
+  return [['加入日期',addedDateVal],['年龄',c.age?c.age+' 岁':null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
 }
 
 function getApiKey() { return localStorage.getItem(API_KEY_KEY)||''; }
@@ -600,12 +620,14 @@ async function getAdvice(id) {
   const personalPreset=localStorage.getItem(PRESET_PERSONAL_KEY)||'';
   const notesText=(c.notes||[]).map(n=>`${fmtDate(n.ts)}: ${n.text}`).join('\n')||'无';
   const cs=calcClientScore(c),rs=calcRecruitScore(c);
+  const daysKnown=c.addedDate?Math.floor((Date.now()-new Date(c.addedDate).getTime())/86400000):null;
   const prompt=`你是一个金融教育类副业项目的人脉跟进顾问。${personalPreset?`\n\n用户的沟通偏好和原则：\n${personalPreset}\n`:''}
 请基于以下联系人信息，给出具体的联络建议。
 
 联系人：${c.name}
 客户倾向分：${cs} | 招募倾向分：${rs}
 当前阶段：S${c.stage} ${STAGE_LABELS[c.stage]}
+认识时长：${daysKnown!==null?`${daysKnown} 天（加入日期 ${c.addedDate}）`:'未知'}
 基本信息：${[c.age?`${c.age}岁`:'',c.employment,c.marital,c.kids==='yes'?'有孩子':'',c.mortgage==='yes'?'有房贷':'',c.visa&&c.visa!=='na'?c.visa.toUpperCase():''].filter(Boolean).join('，')}
 跟进记录：
 ${notesText}
@@ -642,7 +664,8 @@ async function openWeekly() {
     const allNotesCount=(c.notes||[]).length;
     const lastNote=(c.notes||[]).length?(c.notes[c.notes.length-1]):{};
     const daysSinceLast=lastNote.ts?Math.floor((Date.now()-lastNote.ts)/86400000):null;
-    return `【${c.name}】S${c.stage} ${STAGE_LABELS[c.stage]} | 客户分:${cs} 招募分:${rs} | 共${allNotesCount}条记录${daysSinceLast!==null?` | 距上次联系${daysSinceLast}天`:''}${recentNotes?`\n本周动态：\n${recentNotes}`:''}`;
+    const daysKnown=c.addedDate?Math.floor((Date.now()-new Date(c.addedDate).getTime())/86400000):null;
+    return `【${c.name}】S${c.stage} ${STAGE_LABELS[c.stage]} | 客户分:${cs} 招募分:${rs}${daysKnown!==null?` | 认识${daysKnown}天`:''}${daysSinceLast!==null?` | 距上次联系${daysSinceLast}天`:''} | 共${allNotesCount}条记录${recentNotes?`\n本周动态：\n${recentNotes}`:''}`;
   }).join('\n\n');
 
   const prompt=`你是一个金融教育类副业项目的人脉管理助手。今天是${fmtDate(Date.now())}。${weeklyPreset?`\n\n用户的每周建议原则：\n${weeklyPreset}\n`:''}\n\n以下是当前所有跟进中的联系人（不含已成交S5）情况：\n\n${contactsSummary||'暂无跟进中的联系人'}\n\n请生成本周行动建议，要求：\n1. 按优先级排列，最需要行动的排在前面\n2. 每个人的建议要具体可执行，结合他们的 stage、评分和最近互动情况\n3. 考虑联系频率，长时间没联系的需要特别提醒\n4. 整体策略总结放在最后\n\n用简洁中文输出，条理清晰。`;
@@ -680,6 +703,7 @@ function saveContact() {
     ambition:document.getElementById('f-ambition').value||null,
     stage:selectedStage,
     notes:existing?existing.notes:[],
+    addedDate:document.getElementById('f-added-date').value||null,
     updatedAt:Date.now()
   };
   if(editingId){const idx=contacts.findIndex(x=>x.id===editingId);if(idx!==-1)contacts[idx]=c;editingId=null;}
@@ -700,6 +724,7 @@ function editContact(id) {
   document.getElementById('f-openness').value=c.openness||'';
   document.getElementById('f-dissatisfaction').value=c.dissatisfaction||'';
   document.getElementById('f-ambition').value=c.ambition||'';
+  document.getElementById('f-added-date').value=c.addedDate||'';
   selectedStage=c.stage||1;
   document.querySelectorAll('.stage-btn').forEach(e=>e.classList.toggle('active',parseInt(e.dataset.val)===selectedStage));
   showScreen('add');
@@ -713,6 +738,10 @@ function deleteContact(id) {
 function clearForm() {
   ['f-name','f-age','f-openness','f-dissatisfaction','f-ambition','ai-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['f-marital','f-kids','f-employment','f-visa','f-mortgage'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  // Default added date to today
+  const today=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('f-added-date').value=`${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
   document.getElementById('ai-result-box').style.display='none';
   document.querySelectorAll('.stage-btn').forEach((e,i)=>e.classList.toggle('active',i===0));
   selectedStage=1; editingId=null;
@@ -791,7 +820,7 @@ saveContact = function() {
     openness:document.getElementById('f-openness').value||null,
     dissatisfaction:document.getElementById('f-dissatisfaction').value||null,
     ambition:document.getElementById('f-ambition').value||null,
-    stage:selectedStage, notes, updatedAt:Date.now()
+    stage:selectedStage, notes, addedDate:document.getElementById('f-added-date').value||null, updatedAt:Date.now()
   };
   if(editingId){const idx=contacts.findIndex(x=>x.id===editingId);if(idx!==-1)contacts[idx]=c;editingId=null;}
   else contacts.push(c);

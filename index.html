@@ -215,6 +215,8 @@
           <option value="recruit">↓ 招募分</option>
           <option value="client">↓ 客户分</option>
           <option value="total">↓ 总分</option>
+          <option value="stage">↓ Stage</option>
+          <option value="updated">↓ 最近编辑</option>
         </select>
         <div class="filter-bar">
           <div class="filter-chip active" data-stage="all" onclick="setFilter(this)">全部</div>
@@ -524,6 +526,8 @@ function renderDashboard(){
   list.sort((a,b)=>{
     if(sort==='recruit')return calcRecruitScore(b)-calcRecruitScore(a);
     if(sort==='client')return calcClientScore(b)-calcClientScore(a);
+    if(sort==='stage')return b.stage-a.stage;
+    if(sort==='updated')return(b.updatedAt||0)-(a.updatedAt||0);
     return(calcClientScore(b)+calcRecruitScore(b))-(calcClientScore(a)+calcRecruitScore(a));
   });
   document.getElementById('stat-total').textContent=contacts.length;

@@ -246,7 +246,7 @@
         <div class="field"><label>加入日期</label><input type="date" id="f-added-date"></div>
         <div class="field"><label>性别</label>
           <select id="f-gender"><option value="">— 选择 —</option><option value="male">男</option><option value="female">女</option><option value="other">其他</option></select></div>
-        <div class="field"><label>年龄</label><input type="number" id="f-age" placeholder="岁" min="18" max="80"></div>
+        <div class="field"><label>出生年份</label><input type="number" id="f-age" placeholder="例：1990" min="1940" max="2005"></div>
         <div class="field"><label>婚姻状况</label>
           <select id="f-marital"><option value="">— 选择 —</option><option value="single">未婚</option><option value="married">已婚</option><option value="divorced">离异</option></select></div>
         <div class="field"><label>子女</label>
@@ -476,8 +476,15 @@ function calcRecruitScore(c){
   return Math.round(s*10)/10;
 }
 
+function calcAge(c){
+  if(!c.age) return null;
+  const yr=parseInt(c.age);
+  if(yr<1900||yr>new Date().getFullYear()) return null;
+  return new Date().getFullYear()-yr;
+}
+
 function getClientFactors(c){
-  const age=parseInt(c.age)||0;
+  const age=calcAge(c)||0;
   return [
     {key:'employed',label:'在职',system:c.employment==='employed'?getRuleVal('client','employed'):0},
     {key:'married',label:'已婚',system:c.marital==='married'?getRuleVal('client','married'):0},
@@ -499,8 +506,15 @@ function getRecruitFactors(c){
 
 function initials(n){if(!n)return'?';const p=n.trim().split(/\s+/);return p.length===1?n.slice(0,2):p[0][0]+p[1][0];}
 function sc(v){return v>0?'pos':v<0?'neg':'neu';}
+function parseLocalDate(str){
+  if(!str) return null;
+  const [y,m,d]=str.split('-').map(Number);
+  return new Date(y,m-1,d);
+}
+
 function fmtDate(ts){const d=new Date(ts);return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;}
 function todayStr(){const d=new Date(),p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;}
+
 
 function load(){
   try{contacts=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){contacts=[];}
@@ -551,7 +565,7 @@ function renderDashboard(){
       <div class="scores">
         <div class="score-item"><div class="s-label">客户分</div><div class="s-val ${sc(cs)}">${cs>0?'+':''}${cs}</div><div class="score-bar"><div class="score-bar-fill s${sn}" style="width:${csB}%"></div></div></div>
         <div class="score-item"><div class="s-label">招募分</div><div class="s-val ${sc(rs)}">${rs>0?'+':''}${rs}</div><div class="score-bar"><div class="score-bar-fill s${sn}" style="width:${rsB}%"></div></div></div>
-        ${c.age?`<div class="score-item"><div class="s-label">年龄</div><div class="s-val neu">${c.age}</div></div>`:''}
+        ${c.age?`<div class="score-item"><div class="s-label">年龄</div><div class="s-val neu">${calcAge(c)||c.age}</div></div>`:''}
       </div>
       ${tags.length?`<div class="meta">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}
       ${lastNote?`<div class="last-note-preview">${fmtDate(lastNote.ts)} · ${lastNote.text.slice(0,40)}${lastNote.text.length>40?'…':''}</div>`:''}
@@ -579,15 +593,15 @@ function showDetail(id){
     <div class="detail-avatar s${sn}">${initials(c.name)}</div>
     <div style="flex:1">
       <div class="detail-name">${c.name}</div>
-      <div class="detail-meta">${[c.age?c.age+'岁':'',genderMap[c.gender]||'',c.employment,c.visa&&c.visa!=='na'?c.visa.toUpperCase():''].filter(Boolean).join(' · ')}</div>
+      <div class="detail-meta">${[c.age?calcAge(c)+'岁':'',genderMap[c.gender]||'',c.employment,c.visa&&c.visa!=='na'?c.visa.toUpperCase():''].filter(Boolean).join(' · ')}</div>
       <div class="stage-badge s${sn}" style="margin-top:6px;display:inline-block">S${sn} ${STAGE_LABELS[sn]}</div>
     </div>`;
 
   // Build info rows
   const map={employed:'在职',self:'自雇/创业',unemployed:'待业',student:'学生',single:'未婚',married:'已婚',divorced:'离异',yes:'有',no:'无',none:'无',citizen:'公民/绿卡',h1b:'H1B',opt:'OPT/F1',other:'其他工签',na:'不适用',male:'男',female:'女'};
   let addedDateVal=null;
-  if(c.addedDate){const d=new Date(c.addedDate);const days=Math.floor((Date.now()-d.getTime())/86400000);addedDateVal=`${c.addedDate}（已认识 ${days} 天）`;}
-  const infoHtml=[['加入日期',addedDateVal],['性别',map[c.gender]||(c.gender==='other'?'其他':null)],['年龄',c.age?c.age+' 岁':null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
+  if(c.addedDate){const d=parseLocalDate(c.addedDate);const days=Math.floor((Date.now()-d.getTime())/86400000);addedDateVal=`${c.addedDate}（已认识 ${days} 天）`;}
+  const infoHtml=[['加入日期',addedDateVal],['性别',map[c.gender]||(c.gender==='other'?'其他':null)],['年龄',c.age?(calcAge(c)+'岁（'+c.age+'年生）'):null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
 
   const hasOverride=c.scoreOverrides&&Object.keys(c.scoreOverrides).length>0;
 
@@ -671,7 +685,7 @@ function addNote(id){
   const c=contacts.find(x=>x.id===id);if(!c)return;
   if(!Array.isArray(c.notes))c.notes=[];
   const dateVal=document.getElementById('note-date').value;
-  const ts=dateVal?new Date(dateVal).setHours(12,0,0,0):Date.now();
+  const ts=dateVal?parseLocalDate(dateVal).getTime():Date.now();
   c.notes.push({ts,text});
   c.notes.sort((a,b)=>a.ts-b.ts);
   save();input.value='';
@@ -731,7 +745,7 @@ async function getAdvice(id){
   const personalPreset=localStorage.getItem(PRESET_PERSONAL_KEY)||'';
   const notesText=(c.notes||[]).map(n=>`${fmtDate(n.ts)}: ${n.text}`).join('\n')||'无';
   const cs=calcClientScore(c),rs=calcRecruitScore(c);
-  const daysKnown=c.addedDate?Math.floor((Date.now()-new Date(c.addedDate).getTime())/86400000):null;
+  const daysKnown=c.addedDate?Math.floor((Date.now()-parseLocalDate(c.addedDate).getTime())/86400000):null;
   const prompt=`你是一个金融教育类副业项目的人脉跟进顾问。${personalPreset?`\n\n用户的沟通偏好和原则：\n${personalPreset}\n`:''}
 请基于以下联系人信息，给出具体的联络建议。
 
@@ -739,7 +753,7 @@ async function getAdvice(id){
 客户倾向分：${cs} | 招募倾向分：${rs}
 当前阶段：S${c.stage} ${STAGE_LABELS[c.stage]}
 认识时长：${daysKnown!==null?`${daysKnown} 天（${c.addedDate}）`:'未知'}
-基本信息：${[c.age?`${c.age}岁`:'',c.gender==='female'?'女':c.gender==='male'?'男':'',c.employment,c.marital,c.kids==='yes'?'有孩子':'',c.mortgage==='yes'?'有房贷':'',c.visa&&c.visa!=='na'?c.visa.toUpperCase():''].filter(Boolean).join('，')}
+基本信息：${[c.age?`${calcAge(c)}岁(${c.age}年生)`:'',c.gender==='female'?'女':c.gender==='male'?'男':'',c.employment,c.marital,c.kids==='yes'?'有孩子':'',c.mortgage==='yes'?'有房贷':'',c.visa&&c.visa!=='na'?c.visa.toUpperCase():''].filter(Boolean).join('，')}
 跟进记录：
 ${notesText}
 
@@ -772,7 +786,7 @@ async function openWeekly(){
     const allCount=(c.notes||[]).length;
     const last=(c.notes||[]).length?c.notes[c.notes.length-1]:{};
     const daysSince=last.ts?Math.floor((Date.now()-last.ts)/86400000):null;
-    const daysKnown=c.addedDate?Math.floor((Date.now()-new Date(c.addedDate).getTime())/86400000):null;
+    const daysKnown=c.addedDate?Math.floor((Date.now()-parseLocalDate(c.addedDate).getTime())/86400000):null;
     return`【${c.name}】S${c.stage} ${STAGE_LABELS[c.stage]} | 客户分:${cs} 招募分:${rs}${daysKnown!==null?` | 认识${daysKnown}天`:''}${daysSince!==null?` | 距上次${daysSince}天`:''} | 共${allCount}条记录${recentNotes?`\n本周：\n${recentNotes}`:''}`;
   }).join('\n\n');
   const prompt=`你是一个金融教育类副业项目的人脉管理助手。今天是${fmtDate(Date.now())}。${weeklyPreset?`\n\n用户的每周建议原则：\n${weeklyPreset}\n`:''}\n\n当前跟进中的联系人（不含S5）：\n\n${summary||'暂无'}\n\n请生成本周行动建议，按优先级排列，每条具体可执行，考虑联系频率和认识时长，整体策略总结放最后。简洁中文。`;
@@ -880,7 +894,7 @@ async function aiParse(){
   const apiKey=getApiKey();if(!apiKey){showToast('请先在设置中填入 API Key');return;}
   const btn=document.getElementById('ai-parse-btn'),box=document.getElementById('ai-result-box');
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>解析中…';box.style.display='none';
-  const prompt=`你是一个CRM数据解析助手。从以下描述中提取联系人信息，以JSON格式返回。只返回JSON，不要任何其他文字。\n\nJSON字段：name(string), age(number|null), gender(male/female/other/null), marital(single/married/divorced/null), kids(yes/no/null), employment(employed/self/unemployed/student/null), visa(citizen/h1b/opt/other/na/null), mortgage(yes/no/null), openness(-3到3|null), dissatisfaction(-3到3|null), ambition(-3到3|null), notes(string，把有价值信息整理成简短备注), parse_summary(一句话总结，中文)\n\n描述：${text}`;
+  const prompt=`你是一个CRM数据解析助手。从以下描述中提取联系人信息，以JSON格式返回。只返回JSON，不要任何其他文字。\n\nJSON字段：name(string), age(出生年份number如1990|null), gender(male/female/other/null), marital(single/married/divorced/null), kids(yes/no/null), employment(employed/self/unemployed/student/null), visa(citizen/h1b/opt/other/na/null), mortgage(yes/no/null), openness(-3到3|null), dissatisfaction(-3到3|null), ambition(-3到3|null), notes(string，把有价值信息整理成简短备注), parse_summary(一句话总结，中文)\n\n注意：age字段填出生年份（如1990），不是年龄数字。如果描述里说"32岁"，推算出生年份填入。\n\n描述：${text}`;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();

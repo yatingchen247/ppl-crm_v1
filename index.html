@@ -40,6 +40,7 @@
   .stat-card .num{font-size:22px;font-weight:700;color:var(--accent);}
   .stat-card .lbl{font-size:10px;color:var(--text3);margin-top:2px;}
   .stat-card.s4 .num{color:var(--s4);}.stat-card.s5 .num{color:var(--s5);}
+  .stat-card.pending .num{color:#fbbf24;}.stat-card.active .num{color:#34d399;}
   .controls-row{display:flex;gap:8px;margin-bottom:10px;align-items:center;}
   .sort-select{flex-shrink:0;background:var(--bg2);border:0.5px solid var(--border2);border-radius:20px;color:var(--accent);font-size:11px;padding:5px 10px;outline:none;font-family:inherit;-webkit-appearance:none;cursor:pointer;}
   .filter-bar{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;flex:1;}
@@ -69,6 +70,23 @@
   .stage-badge.s3{background:var(--s3-bg);color:var(--s3);border:0.5px solid var(--s3-border);}
   .stage-badge.s4{background:var(--s4-bg);color:var(--s4);border:0.5px solid var(--s4-border);}
   .stage-badge.s5{background:var(--s5-bg);color:var(--s5);border:0.5px solid var(--s5-border);}
+  .cat-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;}
+  .cat-badge.prospect{background:rgba(91,138,245,0.12);color:#5b8af5;border:0.5px solid rgba(91,138,245,0.3);}
+  .cat-badge.pending{background:rgba(251,191,36,0.12);color:#fbbf24;border:0.5px solid rgba(251,191,36,0.3);}
+  .cat-badge.active{background:rgba(52,211,153,0.12);color:#34d399;border:0.5px solid rgba(52,211,153,0.3);}
+  .rel-tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;background:rgba(167,139,250,0.12);color:#a78bfa;border:0.5px solid rgba(167,139,250,0.3);}
+  .bio-box{font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap;}
+  .cat-filter-bar{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px;}
+  .cat-filter-bar::-webkit-scrollbar{display:none;}
+  .cat-chip{flex-shrink:0;padding:5px 9px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+  .cat-chip.active{font-weight:600;}
+  .cat-chip[data-cat="all"].active{background:var(--accent-bg);color:var(--accent);border-color:rgba(0,212,255,0.3);}
+  .cat-chip[data-cat="prospect"].active{background:rgba(91,138,245,0.12);color:#5b8af5;border-color:rgba(91,138,245,0.3);}
+  .cat-chip[data-cat="pending"].active{background:rgba(251,191,36,0.12);color:#fbbf24;border-color:rgba(251,191,36,0.3);}
+  .cat-chip[data-cat="active"].active{background:rgba(52,211,153,0.12);color:#34d399;border-color:rgba(52,211,153,0.3);}
+  .checkbox-group{display:flex;flex-wrap:wrap;gap:6px;}
+  .checkbox-chip{padding:7px 11px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;transition:all 0.15s;user-select:none;}
+  .checkbox-chip.active{background:rgba(167,139,250,0.12);color:#a78bfa;border-color:rgba(167,139,250,0.3);font-weight:600;}
   .contact-card .scores{display:flex;gap:14px;}
   .score-item{display:flex;flex-direction:column;gap:2px;}
   .score-item .s-label{font-size:10px;color:var(--text3);}
@@ -206,8 +224,14 @@
     <div id="dashboard-screen" class="screen active">
       <div class="stats-row">
         <div class="stat-card"><div class="num" id="stat-total">0</div><div class="lbl">总人数</div></div>
-        <div class="stat-card s4"><div class="num" id="stat-s4">0</div><div class="lbl">S4 考虑中</div></div>
-        <div class="stat-card s5"><div class="num" id="stat-s5">0</div><div class="lbl">S5 成交</div></div>
+        <div class="stat-card pending"><div class="num" id="stat-pending">0</div><div class="lbl">待激活</div></div>
+        <div class="stat-card active"><div class="num" id="stat-active">0</div><div class="lbl">Biz 内</div></div>
+      </div>
+      <div class="cat-filter-bar">
+        <div class="cat-chip active" data-cat="all" onclick="setCatFilter(this)">全部分类</div>
+        <div class="cat-chip" data-cat="prospect" onclick="setCatFilter(this)">潜在对象</div>
+        <div class="cat-chip" data-cat="pending" onclick="setCatFilter(this)">待激活</div>
+        <div class="cat-chip" data-cat="active" onclick="setCatFilter(this)">Biz 内</div>
       </div>
       <div class="search-wrap"><input class="search-input" type="text" id="search-input" placeholder="搜索姓名…" oninput="renderDashboard()"></div>
       <div class="controls-row">
@@ -219,7 +243,7 @@
           <option value="updated">↓ 最近编辑</option>
         </select>
         <div class="filter-bar">
-          <div class="filter-chip active" data-stage="all" onclick="setFilter(this)">全部</div>
+          <div class="filter-chip active" data-stage="all" onclick="setFilter(this)">全部阶段</div>
           <div class="filter-chip" data-stage="1" onclick="setFilter(this)">初识</div>
           <div class="filter-chip" data-stage="2" onclick="setFilter(this)">已知需求</div>
           <div class="filter-chip" data-stage="3" onclick="setFilter(this)">已知副业</div>
@@ -276,6 +300,23 @@
           <div class="stage-btn s4" data-val="4" onclick="selectStage(this)">S4 考虑中</div>
           <div class="stage-btn s5" data-val="5" onclick="selectStage(this)">S5 成交</div>
         </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5">分类（潜在对象/待激活/Biz 内）由阶段和最后互动时间自动判断，无需手动填写。如需强制指定，可在下方覆盖。</div>
+        <div class="field" style="margin-top:10px"><label>分类覆盖（可选）</label>
+          <select id="f-category-override"><option value="">— 自动判断 —</option><option value="prospect">潜在对象</option><option value="pending">待激活</option><option value="active">Biz 内</option></select></div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">关系类型 <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">（仅 Biz 内成员适用，可多选）</span></div>
+        <div class="checkbox-group" id="f-relationship-group">
+          <div class="checkbox-chip" data-val="downline" onclick="toggleRelChip(this)">我的 Downline</div>
+          <div class="checkbox-chip" data-val="upline" onclick="toggleRelChip(this)">我的 Upline</div>
+          <div class="checkbox-chip" data-val="sideline" onclick="toggleRelChip(this)">我的 Sideline</div>
+          <div class="checkbox-chip" data-val="other_leader" onclick="toggleRelChip(this)">其他 Team 的 Sideline/Leader</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">人物简介 <span style="font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">（记忆辅助，不参与打分）</span></div>
+        <div class="field"><label>擅长什么 / 怎么认识的 / 跟我有什么交集</label>
+          <textarea id="f-bio" placeholder="例：北加州 team leader，主攻科技行业开拓，2023年在xx活动认识，擅长陌生开发…" style="min-height:80px"></textarea></div>
       </div>
       <button class="submit-btn" onclick="saveContact()">保存联系人</button>
       <div style="height:20px"></div>
@@ -289,6 +330,13 @@
 
     <!-- Settings -->
     <div id="settings-screen" class="screen">
+      <div class="form-section">
+        <div class="form-section-title">分类设置</div>
+        <div class="field"><label>不活跃判定阈值（天）</label>
+          <input type="number" id="inactive-days-input" min="30" step="1" placeholder="270"></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">超过这个天数没有跟进记录，联系人会自动被归为「待激活」。默认 270 天（约 9 个月）。</div>
+        <button class="ai-parse-btn" onclick="saveInactiveDays()">保存</button>
+      </div>
       <div class="form-section">
         <div class="form-section-title">API 设置</div>
         <div class="field"><label>Claude API Key</label>
@@ -339,7 +387,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 3h6l1 1h4v2H4V4h4L9 3zM6 7h12l-1 13H7L6 7zm4 2v8m4-8v8"/></svg>
         </div>
       </div>
-      <div style="padding:14px;text-align:center;font-size:11px;color:var(--text3)">PPL/CRM v1.3 · 数据本地存储</div>
+      <div style="padding:14px;text-align:center;font-size:11px;color:var(--text3)">PPL/CRM v1.4 · 数据本地存储</div>
     </div>
   </div>
 
@@ -390,12 +438,38 @@ const SCORE_RULES_KEY='ppl_crm_score_rules';
 
 let contacts=[];
 let currentFilter='all';
+let currentCatFilter='all';
 let editingId=null;
 let selectedStage=1;
+let selectedRelTypes=[];
 let scoreModalContactId=null;
 let scoreModalType=null;
 
 const STAGE_LABELS={1:'初识',2:'已知需求',3:'已知副业',4:'考虑中',5:'成交'};
+const CATEGORY_LABELS={prospect:'潜在对象',pending:'待激活',active:'Biz 内'};
+const RELATIONSHIP_LABELS={downline:'我的 Downline',upline:'我的 Upline',sideline:'我的 Sideline',other_leader:'其他 Team 的 Sideline/Leader'};
+const INACTIVE_DAYS_KEY='ppl_crm_inactive_days';
+let inactiveDays=270;
+
+function getLastActivityTs(c){
+  if(c.notes&&c.notes.length)return c.notes[c.notes.length-1].ts;
+  if(c.addedDate){const d=parseLocalDate(c.addedDate);if(d)return d.getTime();}
+  return c.updatedAt||null;
+}
+function getCategory(c){
+  if(c.categoryOverride)return c.categoryOverride;
+  const last=getLastActivityTs(c);
+  const daysSince=last!==null?Math.floor((Date.now()-last)/86400000):null;
+  const inactive=daysSince!==null&&daysSince>=inactiveDays;
+  if((c.stage||1)>=5)return inactive?'pending':'active';
+  return inactive?'pending':'prospect';
+}
+function toggleRelChip(el){
+  el.classList.toggle('active');
+  const val=el.dataset.val;
+  if(selectedRelTypes.includes(val))selectedRelTypes=selectedRelTypes.filter(v=>v!==val);
+  else selectedRelTypes.push(val);
+}
 
 // Default score rules
 const DEFAULT_RULES={
@@ -521,9 +595,18 @@ function load(){
   document.getElementById('api-key-input').value=localStorage.getItem(API_KEY_KEY)||'';
   document.getElementById('preset-personal').value=localStorage.getItem(PRESET_PERSONAL_KEY)||'';
   document.getElementById('preset-weekly').value=localStorage.getItem(PRESET_WEEKLY_KEY)||'';
+  inactiveDays=parseInt(localStorage.getItem(INACTIVE_DAYS_KEY))||270;
+  document.getElementById('inactive-days-input').value=inactiveDays;
   loadRules();
 }
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(contacts));}
+function saveInactiveDays(){
+  const v=parseInt(document.getElementById('inactive-days-input').value);
+  inactiveDays=(v&&v>0)?v:270;
+  localStorage.setItem(INACTIVE_DAYS_KEY,String(inactiveDays));
+  showToast('已保存');
+  renderDashboard();
+}
 function savePreset(type){
   localStorage.setItem(type==='personal'?PRESET_PERSONAL_KEY:PRESET_WEEKLY_KEY,document.getElementById('preset-'+type).value);
   showToast('已保存');
@@ -534,6 +617,7 @@ function renderDashboard(){
   const sort=document.getElementById('sort-select').value;
   let list=contacts.filter(c=>{
     if(currentFilter!=='all'&&String(c.stage)!==currentFilter)return false;
+    if(currentCatFilter!=='all'&&getCategory(c)!==currentCatFilter)return false;
     if(q&&!c.name.toLowerCase().includes(q))return false;
     return true;
   });
@@ -545,8 +629,8 @@ function renderDashboard(){
     return(calcClientScore(b)+calcRecruitScore(b))-(calcClientScore(a)+calcRecruitScore(a));
   });
   document.getElementById('stat-total').textContent=contacts.length;
-  document.getElementById('stat-s4').textContent=contacts.filter(c=>c.stage===4).length;
-  document.getElementById('stat-s5').textContent=contacts.filter(c=>c.stage===5).length;
+  document.getElementById('stat-pending').textContent=contacts.filter(c=>getCategory(c)==='pending').length;
+  document.getElementById('stat-active').textContent=contacts.filter(c=>getCategory(c)==='active').length;
   document.getElementById('list-label').textContent=`联系人列表（${list.length}）`;
   const el=document.getElementById('contact-list');
   if(!list.length){
@@ -558,15 +642,18 @@ function renderDashboard(){
     const csB=Math.min(100,Math.max(0,(cs+1)/6*100));
     const rsB=Math.min(100,Math.max(0,(rs+9)/18*100));
     const sn=c.stage||1;
+    const cat=getCategory(c);
     const tags=[c.visa&&c.visa!=='na'?c.visa.toUpperCase():null,c.employment,c.gender==='female'?'女':c.gender==='male'?'男':null].filter(Boolean);
+    const relTags=(c.relationshipTypes||[]).map(r=>RELATIONSHIP_LABELS[r]).filter(Boolean);
     const lastNote=c.notes&&c.notes.length?c.notes[c.notes.length-1]:null;
     return`<div class="contact-card s${sn}" onclick="showDetail('${c.id}')">
-      <div class="row1"><div class="name">${c.name}</div><div class="stage-badge s${sn}">S${sn} ${STAGE_LABELS[sn]}</div></div>
+      <div class="row1"><div class="name">${c.name}</div><div style="display:flex;gap:5px;align-items:center"><div class="cat-badge ${cat}">${CATEGORY_LABELS[cat]}</div><div class="stage-badge s${sn}">S${sn} ${STAGE_LABELS[sn]}</div></div></div>
       <div class="scores">
         <div class="score-item"><div class="s-label">客户分</div><div class="s-val ${sc(cs)}">${cs>0?'+':''}${cs}</div><div class="score-bar"><div class="score-bar-fill s${sn}" style="width:${csB}%"></div></div></div>
         <div class="score-item"><div class="s-label">招募分</div><div class="s-val ${sc(rs)}">${rs>0?'+':''}${rs}</div><div class="score-bar"><div class="score-bar-fill s${sn}" style="width:${rsB}%"></div></div></div>
         ${c.age?`<div class="score-item"><div class="s-label">年龄</div><div class="s-val neu">${calcAge(c)||c.age}</div></div>`:''}
       </div>
+      ${relTags.length?`<div class="meta">${relTags.map(t=>`<span class="rel-tag">${t}</span>`).join('')}</div>`:''}
       ${tags.length?`<div class="meta">${tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}
       ${lastNote?`<div class="last-note-preview">${fmtDate(lastNote.ts)} · ${lastNote.text.slice(0,40)}${lastNote.text.length>40?'…':''}</div>`:''}
     </div>`;
@@ -577,6 +664,10 @@ function setFilter(el){
   document.querySelectorAll('.filter-chip').forEach(e=>e.classList.remove('active'));
   el.classList.add('active');currentFilter=el.dataset.stage;renderDashboard();
 }
+function setCatFilter(el){
+  document.querySelectorAll('.cat-chip').forEach(e=>e.classList.remove('active'));
+  el.classList.add('active');currentCatFilter=el.dataset.cat;renderDashboard();
+}
 
 function showDetail(id){
   const c=contacts.find(x=>x.id===id);if(!c)return;
@@ -585,6 +676,8 @@ function showDetail(id){
   const rsB=Math.min(100,Math.max(0,(rs+9)/18*100));
   const sc_color=`var(--s${sn})`;
   const genderMap={male:'男',female:'女',other:'其他'};
+  const cat=getCategory(c);
+  const relTags=(c.relationshipTypes||[]).map(r=>RELATIONSHIP_LABELS[r]).filter(Boolean);
 
   document.getElementById('detail-header').innerHTML=`
     <button class="back-btn" onclick="showScreen('dashboard')">
@@ -594,7 +687,8 @@ function showDetail(id){
     <div style="flex:1">
       <div class="detail-name">${c.name}</div>
       <div class="detail-meta">${[c.age?calcAge(c)+'岁':'',genderMap[c.gender]||'',c.employment,c.visa&&c.visa!=='na'?c.visa.toUpperCase():''].filter(Boolean).join(' · ')}</div>
-      <div class="stage-badge s${sn}" style="margin-top:6px;display:inline-block">S${sn} ${STAGE_LABELS[sn]}</div>
+      <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap"><div class="cat-badge ${cat}">${CATEGORY_LABELS[cat]}${c.categoryOverride?' (手动)':''}</div><div class="stage-badge s${sn}">S${sn} ${STAGE_LABELS[sn]}</div></div>
+      ${relTags.length?`<div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">${relTags.map(t=>`<span class="rel-tag">${t}</span>`).join('')}</div>`:''}
     </div>`;
 
   // Build info rows
@@ -623,6 +717,10 @@ function showDetail(id){
         </div>
       </div>
     </div>
+    ${c.bio?`<div class="detail-section">
+      <div class="detail-section-title">人物简介</div>
+      <div class="bio-box">${escHtml(c.bio)}</div>
+    </div>`:''}
     <div class="detail-section">
       <div class="detail-section-title">基本信息</div>
       ${infoHtml||'<div style="color:var(--text3);font-size:13px">暂无数据</div>'}
@@ -825,6 +923,9 @@ function saveContact(){
     dissatisfaction:document.getElementById('f-dissatisfaction').value||null,
     ambition:document.getElementById('f-ambition').value||null,
     stage:selectedStage,notes,
+    relationshipTypes:selectedRelTypes.slice(),
+    bio:document.getElementById('f-bio').value.trim()||null,
+    categoryOverride:document.getElementById('f-category-override').value||null,
     scoreOverrides:existing?existing.scoreOverrides:{},
     updatedAt:Date.now()
   };
@@ -848,8 +949,12 @@ function editContact(id){
   document.getElementById('f-openness').value=c.openness||'';
   document.getElementById('f-dissatisfaction').value=c.dissatisfaction||'';
   document.getElementById('f-ambition').value=c.ambition||'';
+  document.getElementById('f-bio').value=c.bio||'';
+  document.getElementById('f-category-override').value=c.categoryOverride||'';
   selectedStage=c.stage||1;
   document.querySelectorAll('.stage-btn').forEach(e=>e.classList.toggle('active',parseInt(e.dataset.val)===selectedStage));
+  selectedRelTypes=(c.relationshipTypes||[]).slice();
+  document.querySelectorAll('#f-relationship-group .checkbox-chip').forEach(e=>e.classList.toggle('active',selectedRelTypes.includes(e.dataset.val)));
   showScreen('add');
 }
 
@@ -859,12 +964,13 @@ function deleteContact(id){
 }
 
 function clearForm(){
-  ['f-name','f-age','f-openness','f-dissatisfaction','f-ambition','ai-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['f-marital','f-kids','f-employment','f-visa','f-mortgage','f-gender'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-name','f-age','f-openness','f-dissatisfaction','f-ambition','ai-input','f-bio'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-marital','f-kids','f-employment','f-visa','f-mortgage','f-gender','f-category-override'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-added-date').value=todayStr();
   document.getElementById('ai-result-box').style.display='none';
   document.querySelectorAll('.stage-btn').forEach((e,i)=>e.classList.toggle('active',i===0));
-  selectedStage=1;editingId=null;
+  document.querySelectorAll('#f-relationship-group .checkbox-chip').forEach(e=>e.classList.remove('active'));
+  selectedStage=1;selectedRelTypes=[];editingId=null;
 }
 
 function exportData(){

@@ -110,6 +110,8 @@
   .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
   .field textarea{resize:none;line-height:1.5;}.field select option{background:var(--bg3);}
   .ai-parse-btn{width:100%;padding:12px;background:var(--accent-bg);border:0.5px solid rgba(0,212,255,0.3);border-radius:var(--radius);color:var(--accent);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+  .btn-soft-red{background:rgba(255,95,109,0.12);border-color:rgba(255,95,109,0.3);color:var(--red);}
+  .btn-soft-green{background:rgba(61,219,160,0.12);border-color:rgba(61,219,160,0.3);color:var(--green);}
   .ai-parse-btn:active{background:rgba(0,212,255,0.18);}.ai-parse-btn:disabled{opacity:0.4;cursor:default;}
   .submit-btn{width:100%;padding:14px;background:var(--accent);border:none;border-radius:var(--radius);color:#04151a;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;}
   .submit-btn:active{opacity:0.85;}
@@ -163,6 +165,10 @@
   .preset-item .pi-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1;}
   .preset-item .pi-del:active{color:var(--red);}
   .preset-empty{font-size:13px;color:var(--text3);padding:4px 0;}
+  .chat-messages{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:340px;overflow-y:auto;}
+  .chat-bubble{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.6;white-space:pre-wrap;}
+  .chat-bubble.user{background:var(--accent-bg);color:var(--text);align-self:flex-end;border-bottom-right-radius:3px;}
+  .chat-bubble.assistant{background:var(--bg3);color:var(--text2);align-self:flex-start;border-bottom-left-radius:3px;}
   .note-entry:last-child{border-bottom:none;}
   .note-entry-content{flex:1;}
   .note-date{font-size:11px;color:var(--accent);font-weight:600;margin-bottom:5px;letter-spacing:0.04em;}
@@ -245,12 +251,12 @@
       <div class="search-wrap"><input class="search-input" type="text" id="search-input" placeholder="搜索姓名…" oninput="renderDashboard()"></div>
       <div class="controls-row">
         <select class="sort-select" id="sort-select" onchange="renderDashboard()">
+          <option value="updated" selected>↓ 最近编辑</option>
           <option value="recruit">↓ 招募分</option>
           <option value="client">↓ 客户分</option>
           <option value="total">↓ 总分</option>
-          <option value="stage">↓ Stage</option>
-          <option value="updated">↓ 最近编辑</option>
-          <option value="name">A-Z 姓名（拼音/字母）</option>
+          <option value="name">A-Z 姓名</option>
+          <option value="name_desc">Z-A 姓名</option>
         </select>
         <div class="filter-bar">
           <div class="filter-chip active" data-stage="all" onclick="setFilter(this)">全部阶段</div>
@@ -267,16 +273,10 @@
     <!-- Add -->
     <div id="add-screen" class="screen">
       <div class="form-section">
-        <div class="form-section-title">AI 快速录入</div>
-        <div class="field"><label>用自然语言描述这个人</label>
-          <textarea id="ai-input" placeholder="例：张伟，32岁，字节跳动产品经理，已婚有孩子，租房，H1B。对工作不满意，有副业想法…" style="min-height:90px"></textarea></div>
-        <button class="ai-parse-btn" id="ai-parse-btn" onclick="aiParse()">✦ AI 解析并填充</button>
-        <div class="ai-result-box" id="ai-result-box"></div>
-      </div>
-      <div class="form-section">
         <div class="form-section-title">基础信息</div>
         <div class="field"><label>姓名 *</label><input type="text" id="f-name" placeholder="姓名"></div>
         <div class="field"><label>加入日期</label><input type="date" id="f-added-date"></div>
+        <div class="field"><label>地点</label><input type="text" id="f-location" placeholder="现居/常在的地点"></div>
         <div class="field"><label>性别</label>
           <select id="f-gender"><option value="">— 选择 —</option><option value="male">男</option><option value="female">女</option><option value="other">其他</option></select></div>
         <div class="field"><label>出生信息 <span style="color:var(--text3);font-size:11px">（年龄只按年份计算，其余仅作参考）</span></label>
@@ -343,16 +343,62 @@
       <div class="detail-body" id="detail-body"></div>
     </div>
 
-    <!-- Insight / AI 助手 -->
+    <!-- Insight / AI 分析助手 -->
     <div id="insight-screen" class="screen">
-      <div class="section-title">AI 助手</div>
+      <div class="section-title">AI 分析助手</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.6">用一句话描述你想找的人，AI 会从所有联系人的资料和跟进记录里帮你筛出来。比如"很久没联系、都不记得怎么认识的人"、"都在西海岸的"、"提到过想换工作的"。</div>
       <textarea id="insight-query" rows="3" placeholder="描述你想找的人…" style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:14px;padding:10px 12px;outline:none;font-family:inherit;resize:none"></textarea>
-      <button class="ai-parse-btn" id="insight-btn" style="width:100%;margin-top:10px" onclick="runInsightSearch()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>分析
-      </button>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="ai-parse-btn" id="insight-btn" style="flex:1;padding:12px 4px;font-size:14px;white-space:nowrap" onclick="runInsightSearch()">分析</button>
+        <button class="ai-parse-btn btn-soft-red" id="insight-clear-btn" style="flex:1;padding:12px 4px;font-size:14px;white-space:nowrap" onclick="clearInsight()">清空</button>
+        <button class="ai-parse-btn btn-soft-green" id="insight-export-btn" style="flex:1;padding:12px 4px;font-size:14px;white-space:nowrap" onclick="exportInsightResults()">导出</button>
+      </div>
       <div id="insight-summary" style="margin-top:14px;font-size:13px;color:var(--text2);line-height:1.7;display:none"></div>
       <div id="insight-results" style="margin-top:12px"></div>
+    </div>
+
+    <!-- 沟通原则 -->
+    <div id="principles-screen" class="screen">
+      <div class="section-title">沟通原则</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">跟AI聊聊具体的人际情况，一起商量出一条可执行的原则，确认后加进下面的原则库。原则库会在生成联络建议/周报建议的时候被AI读取。</div>
+
+      <div class="form-section">
+        <div class="form-section-title">个人联络原则</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">已有原则</div>
+        <div id="preset-personal-existing" style="margin-bottom:14px"></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">跟AI讨论</div>
+        <div id="chat-personal-messages" class="chat-messages"></div>
+        <textarea id="chat-personal-input" rows="2" placeholder="说说具体是什么情况…比如某个人最近让你有点犹豫要不要继续联系" style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:14px;padding:10px 12px;outline:none;font-family:inherit;resize:none"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="ai-parse-btn" id="chat-personal-send" style="flex:1" onclick="sendPrincipleChat('personal')">发送</button>
+          <button class="ai-parse-btn" id="chat-personal-distill" style="flex:1;background:rgba(167,139,250,0.12);color:#a78bfa" onclick="distillPrinciple('personal')">提炼成原则</button>
+        </div>
+        <div style="text-align:right;margin-top:6px"><span style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline" onclick="clearPrincipleChat('personal')">清空对话</span></div>
+        <div id="chat-personal-draft" style="display:none;margin-top:12px;background:var(--bg3);border:0.5px solid rgba(167,139,250,0.3);border-radius:var(--radius-sm);padding:12px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">AI提炼的原则草稿（可以改）</div>
+          <textarea id="chat-personal-draft-text" rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:13px;padding:8px 10px;outline:none;font-family:inherit;resize:none"></textarea>
+          <button class="ai-parse-btn" style="width:100%;margin-top:8px" onclick="confirmPrincipleDraft('personal')">确认加入原则库</button>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">每周总结原则</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">已有原则</div>
+        <div id="preset-weekly-existing" style="margin-bottom:14px"></div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">跟AI讨论</div>
+        <div id="chat-weekly-messages" class="chat-messages"></div>
+        <textarea id="chat-weekly-input" rows="2" placeholder="说说每周该怎么排优先级…比如哪类人该优先跟进、哪类人先不管" style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:14px;padding:10px 12px;outline:none;font-family:inherit;resize:none"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="ai-parse-btn" id="chat-weekly-send" style="flex:1" onclick="sendPrincipleChat('weekly')">发送</button>
+          <button class="ai-parse-btn" id="chat-weekly-distill" style="flex:1;background:rgba(167,139,250,0.12);color:#a78bfa" onclick="distillPrinciple('weekly')">提炼成原则</button>
+        </div>
+        <div style="text-align:right;margin-top:6px"><span style="font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline" onclick="clearPrincipleChat('weekly')">清空对话</span></div>
+        <div id="chat-weekly-draft" style="display:none;margin-top:12px;background:var(--bg3);border:0.5px solid rgba(167,139,250,0.3);border-radius:var(--radius-sm);padding:12px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">AI提炼的原则草稿（可以改）</div>
+          <textarea id="chat-weekly-draft-text" rows="2" style="width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:13px;padding:8px 10px;outline:none;font-family:inherit;resize:none"></textarea>
+          <button class="ai-parse-btn" style="width:100%;margin-top:8px" onclick="confirmPrincipleDraft('weekly')">确认加入原则库</button>
+        </div>
+      </div>
     </div>
 
     <!-- Settings -->
@@ -362,25 +408,6 @@
         <div class="field"><label>Claude API Key</label>
           <input class="api-key-field" type="password" id="api-key-input" placeholder="sk-ant-…"></div>
         <button class="ai-parse-btn" style="margin-top:8px" onclick="saveApiKey()">保存 API Key</button>
-      </div>
-
-      <div class="form-section">
-        <div class="form-section-title">个人联络建议原则</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5">生成每个人的联络建议前，AI 会把下面"已有原则"里的所有条目和你新增的内容合在一起读取。</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">已有原则</div>
-        <div id="preset-personal-existing" style="margin-bottom:12px"></div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">新增内容</div>
-        <textarea class="preset-textarea" id="preset-personal-new" rows="4" placeholder="输入要补充的原则，保存后会作为新的一条加进上面「已有原则」…"></textarea>
-        <button class="save-preset-btn" onclick="appendPresetItem('personal')">保存新增</button>
-      </div>
-      <div class="form-section">
-        <div class="form-section-title">每周总结建议原则</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.5">生成本周行动建议时，AI 会把下面"已有原则"里的所有条目和你新增的内容合在一起读取。</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">已有原则</div>
-        <div id="preset-weekly-existing" style="margin-bottom:12px"></div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">新增内容</div>
-        <textarea class="preset-textarea" id="preset-weekly-new" rows="4" placeholder="例：Stage 5 已有决定且不在Biz内的（已关闭）不需要出现。保存后会作为新的一条加进上面「已有原则」…"></textarea>
-        <button class="save-preset-btn" onclick="appendPresetItem('weekly')">保存新增</button>
       </div>
 
       <div class="form-section">
@@ -405,6 +432,10 @@
       <div class="settings-section">
         <div class="settings-row" onclick="exportData()">
           <div><div class="s-label">导出数据</div><div class="s-sub">JSON 备份</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16l-4-4h3V4h2v8h3l-4 4zM4 18h16v2H4z"/></svg>
+        </div>
+        <div class="settings-row" onclick="exportContactsToCsv(contacts,'ppl_crm')">
+          <div><div class="s-label">导出为 Excel</div><div class="s-sub">姓名/年龄/地点/客户分/招募分/最后编辑时间</div></div>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16l-4-4h3V4h2v8h3l-4 4zM4 18h16v2H4z"/></svg>
         </div>
         <div class="settings-row" onclick="document.getElementById('import-file-replace').click()">
@@ -434,7 +465,9 @@
     <button onclick="showScreen('add')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>新增</button>
     <button onclick="showScreen('insight')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.2 3 5.4V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.6c1.8-1.2 3-3 3-5.4a7 7 0 0 0-7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="18" x2="14" y2="18"/></svg>AI助手</button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4.2 3 5.4V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.6c1.8-1.2 3-3 3-5.4a7 7 0 0 0-7-7z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="18" x2="14" y2="18"/></svg>AI分析助手</button>
+    <button onclick="showScreen('principles')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>沟通原则</button>
     <button onclick="showScreen('settings')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>设置</button>
   </nav>
@@ -513,6 +546,7 @@ const inactiveDays=INACTIVE_DAYS;
 const LEADER_TAGS_KEY='ppl_crm_leader_tags';
 let leaderTagsList=[];
 let selectedLeaderTags=[];
+let lastInsightMatches=[];
 function loadLeaderTags(){
   try{leaderTagsList=JSON.parse(localStorage.getItem(LEADER_TAGS_KEY)||'[]');}catch(e){leaderTagsList=[];}
 }
@@ -663,6 +697,8 @@ function load(){
   document.getElementById('api-key-input').value=localStorage.getItem(API_KEY_KEY)||'';
   renderPresetList('personal');
   renderPresetList('weekly');
+  renderChat('personal');
+  renderChat('weekly');
   loadLeaderTags();
   loadRules();
 }
@@ -685,23 +721,87 @@ function renderPresetList(type){
   if(!list.length){el.innerHTML='<div class="preset-empty">还没有内容</div>';return;}
   el.innerHTML=list.map((item,i)=>`<div class="preset-item"><div class="pi-text">${escHtml(item)}</div><button class="pi-del" onclick="deletePresetItem('${type}',${i})" title="删除">×</button></div>`).join('');
 }
-function appendPresetItem(type){
-  const input=document.getElementById('preset-'+type+'-new');
-  const add=input.value.trim();
-  if(!add){showToast('请输入要新增的内容');return;}
-  const list=loadPresetList(type);
-  list.push(add);
-  savePresetList(type,list);
-  input.value='';
-  renderPresetList(type);
-  showToast('已保存');
-}
 function deletePresetItem(type,idx){
   const list=loadPresetList(type);
   list.splice(idx,1);
   savePresetList(type,list);
   renderPresetList(type);
   showToast('已删除');
+}
+
+// 沟通原则：跟AI讨论，提炼成一条原则
+function chatKey(type){return type==='personal'?'ppl_crm_principle_chat_personal':'ppl_crm_principle_chat_weekly';}
+function loadChat(type){try{return JSON.parse(localStorage.getItem(chatKey(type))||'[]');}catch(e){return[];}}
+function saveChat(type,msgs){localStorage.setItem(chatKey(type),JSON.stringify(msgs));}
+function renderChat(type){
+  const el=document.getElementById('chat-'+type+'-messages');
+  if(!el)return;
+  const msgs=loadChat(type);
+  if(!msgs.length){el.innerHTML='<div class="preset-empty">还没有对话，说说具体情况吧</div>';return;}
+  el.innerHTML=msgs.map(m=>`<div class="chat-bubble ${m.role}">${escHtml(m.text)}</div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+async function sendPrincipleChat(type){
+  const input=document.getElementById('chat-'+type+'-input');
+  const text=input.value.trim();
+  if(!text){showToast('请先输入内容');return;}
+  const apiKey=getApiKey();if(!apiKey){showToast('请先在设置中填入 API Key');return;}
+  const msgs=loadChat(type);
+  msgs.push({role:'user',text});
+  saveChat(type,msgs);renderChat(type);
+  input.value='';
+  const btn=document.getElementById('chat-'+type+'-send');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>思考中…';
+  const contextLabel=type==='personal'?'跟单个联系人打交道的原则，比如怎么开口、多久联系一次、什么话题合适、什么情况该谨慎':'安排每周跟进优先级的原则，比如该优先联系谁、哪些人先不用管';
+  const systemFrame=`你是用户的私人顾问，帮他把人际关系里的经验教训想清楚。这段对话的目标是帮用户梳理关于"${contextLabel}"的具体情况：正常跟他讨论、追问细节、给建议，语气自然，不要每句话都急着总结成规则，除非用户明确要求你总结或提炼。用中文回复，不需要JSON格式，就是普通聊天。`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:systemFrame,messages:msgs.map(m=>({role:m.role,content:m.text}))})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    const reply=data.content[0].text.trim();
+    msgs.push({role:'assistant',text:reply});
+    saveChat(type,msgs);renderChat(type);
+  }catch(e){
+    msgs.push({role:'assistant',text:'（出错了：'+e.message+'）'});
+    saveChat(type,msgs);renderChat(type);
+  }
+  btn.disabled=false;btn.textContent='发送';
+}
+async function distillPrinciple(type){
+  const msgs=loadChat(type);
+  if(!msgs.length){showToast('先跟AI聊几句再提炼');return;}
+  const apiKey=getApiKey();if(!apiKey){showToast('请先在设置中填入 API Key');return;}
+  const btn=document.getElementById('chat-'+type+'-distill');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>提炼中…';
+  const instruction='请把以上讨论提炼成一条简短、具体、可执行的原则，控制在40个字以内，用一句话写清楚"在什么情况下应该怎么做"。你的整个回复必须只有这一条原则本身的文字，不要加引号、编号、前缀或任何其他说明。';
+  const apiMsgs=msgs.map(m=>({role:m.role,content:m.text})).concat([{role:'user',content:instruction}]);
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:300,messages:apiMsgs})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    const draft=data.content[0].text.trim();
+    document.getElementById('chat-'+type+'-draft-text').value=draft;
+    document.getElementById('chat-'+type+'-draft').style.display='block';
+  }catch(e){showToast('提炼失败：'+e.message);}
+  btn.disabled=false;btn.textContent='提炼成原则';
+}
+function confirmPrincipleDraft(type){
+  const text=document.getElementById('chat-'+type+'-draft-text').value.trim();
+  if(!text){showToast('内容不能为空');return;}
+  const list=loadPresetList(type);
+  list.push(text);
+  savePresetList(type,list);
+  renderPresetList(type);
+  document.getElementById('chat-'+type+'-draft').style.display='none';
+  document.getElementById('chat-'+type+'-draft-text').value='';
+  showToast('已加入原则库');
+}
+function clearPrincipleChat(type){
+  showConfirm('清空这段对话？已经加入原则库的内容不受影响。',()=>{
+    saveChat(type,[]);
+    renderChat(type);
+    document.getElementById('chat-'+type+'-draft').style.display='none';
+  });
 }
 
 function renderDashboard(){
@@ -716,9 +816,9 @@ function renderDashboard(){
   list.sort((a,b)=>{
     if(sort==='recruit')return calcRecruitScore(b)-calcRecruitScore(a);
     if(sort==='client')return calcClientScore(b)-calcClientScore(a);
-    if(sort==='stage')return b.stage-a.stage;
     if(sort==='updated')return(b.updatedAt||0)-(a.updatedAt||0);
     if(sort==='name'){const ka=nameSortKey(a.name),kb=nameSortKey(b.name);return ka<kb?-1:ka>kb?1:0;}
+    if(sort==='name_desc'){const ka=nameSortKey(a.name),kb=nameSortKey(b.name);return ka<kb?1:ka>kb?-1:0;}
     return(calcClientScore(b)+calcRecruitScore(b))-(calcClientScore(a)+calcRecruitScore(a));
   });
   document.getElementById('stat-total').textContent=contacts.length;
@@ -792,7 +892,7 @@ function showDetail(id){
   let addedDateVal=null;
   if(c.addedDate){const d=parseLocalDate(c.addedDate);const days=Math.floor((Date.now()-d.getTime())/86400000);addedDateVal=`${c.addedDate}（已认识 ${days} 天）`;}
   const birthDetail=[c.birthMonth?c.birthMonth+'月':'',c.birthDay?c.birthDay+'日':'',c.birthTime||'',c.birthPlace||''].filter(Boolean).join(' ');
-  const infoHtml=[['加入日期',addedDateVal],['性别',map[c.gender]||(c.gender==='other'?'其他':null)],['年龄',c.age?(calcAge(c)+'岁（'+c.age+'年生）'):null],['出生详情',birthDetail||null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
+  const infoHtml=[['加入日期',addedDateVal],['地点',c.location||null],['性别',map[c.gender]||(c.gender==='other'?'其他':null)],['年龄',c.age?(calcAge(c)+'岁（'+c.age+'年生）'):null],['出生详情',birthDetail||null],['婚姻',map[c.marital]],['子女',map[c.kids]],['就业',map[c.employment]],['签证',map[c.visa]],['房贷',map[c.mortgage]]].filter(r=>r[1]).map(([l,v])=>`<div class="info-row"><span class="i-label">${l}</span><span class="i-val">${v}</span></div>`).join('');
 
   const hasOverride=c.scoreOverrides&&Object.keys(c.scoreOverrides).length>0;
 
@@ -864,6 +964,7 @@ function renderNotes(c){
 function deleteNote(contactId,idx){
   const c=contacts.find(x=>x.id===contactId);if(!c)return;
   c.notes.splice(idx,1);
+  c.updatedAt=Date.now();
   save();
   document.getElementById('notes-timeline').innerHTML=renderNotes(c);
   showToast('已删除');
@@ -879,6 +980,7 @@ function addNote(id){
   const ts=dateVal?parseLocalDate(dateVal).getTime():Date.now();
   c.notes.push({ts,text});
   c.notes.sort((a,b)=>a.ts-b.ts);
+  c.updatedAt=Date.now();
   save();input.value='';
   document.getElementById('notes-timeline').innerHTML=renderNotes(c);
   document.getElementById('note-date').value=todayStr();
@@ -918,6 +1020,7 @@ function saveScoreOverrides(){
       c.scoreOverrides[key]=parseFloat(el.value);
     }
   });
+  c.updatedAt=Date.now();
   save();
   closeModal('score-modal');
   showToast('已保存');
@@ -1000,15 +1103,11 @@ function saveContact(){
   if(!name){showToast('请填写姓名');return;}
   const existing=editingId?contacts.find(x=>x.id===editingId):null;
   const notes=existing?existing.notes:[];
-  if(window._pendingNote&&!editingId){
-    const noteTs=window._pendingNoteDate?parseLocalDate(window._pendingNoteDate).getTime():Date.now();
-    notes.push({ts:noteTs,text:window._pendingNote});
-    window._pendingNote=null;window._pendingNoteDate=null;
-  }
   const c={
     id:editingId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     name,
     addedDate:document.getElementById('f-added-date').value||null,
+    location:document.getElementById('f-location').value.trim()||null,
     gender:document.getElementById('f-gender').value||null,
     age:document.getElementById('f-birth-year').value||null,
     birthMonth:document.getElementById('f-birth-month').value||null,
@@ -1040,6 +1139,7 @@ function editContact(id){
   editingId=id;
   document.getElementById('f-name').value=c.name||'';
   document.getElementById('f-added-date').value=c.addedDate||'';
+  document.getElementById('f-location').value=c.location||'';
   document.getElementById('f-gender').value=c.gender||'';
   document.getElementById('f-birth-year').value=c.age||'';
   document.getElementById('f-birth-month').value=c.birthMonth||'';
@@ -1071,13 +1171,11 @@ function deleteContact(id){
 }
 
 function clearForm(){
-  ['f-name','f-birth-year','f-birth-month','f-birth-day','f-birth-time','f-birth-place','f-openness','f-dissatisfaction','f-ambition','ai-input'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-name','f-location','f-birth-year','f-birth-month','f-birth-day','f-birth-time','f-birth-place','f-openness','f-dissatisfaction','f-ambition'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['f-marital','f-kids','f-employment','f-visa','f-mortgage','f-gender','f-category-override'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-added-date').value=todayStr();
-  document.getElementById('ai-result-box').style.display='none';
   document.querySelectorAll('.stage-btn').forEach((e,i)=>e.classList.toggle('active',i===0));
   document.querySelectorAll('#f-relationship-group .checkbox-chip').forEach(e=>e.classList.remove('active'));
-  window._pendingNote=null;window._pendingNoteDate=null;
   selectedStage=1;selectedRelTypes=[];selectedLeaderTags=[];editingId=null;
   renderLeaderTagChips();
 }
@@ -1095,6 +1193,45 @@ function exportData(){
   a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
   showToast(`已导出 ${contacts.length} 条`);
+}
+function fmtDateTime(ts){
+  if(!ts)return'';
+  const d=new Date(ts),p=n=>String(n).padStart(2,'0');
+  return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function csvEscape(v){
+  v=v===null||v===undefined?'':String(v);
+  if(/[",\r\n]/.test(v))return'"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function exportContactsToCsv(list,filenamePrefix){
+  if(!list||!list.length){showToast('没有可导出的数据');return;}
+  const header=['名字','年龄','地点','客户分','招募分','最后编辑时间'];
+  const rows=list.map(c=>[
+    c.name||'',
+    c.age?(calcAge(c)||''):'',
+    c.location||'',
+    calcClientScore(c),
+    calcRecruitScore(c),
+    fmtDateTime(c.updatedAt)
+  ]);
+  const csv=[header,...rows].map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const now=new Date(),pad=n=>String(n).padStart(2,'0');
+  const ts=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`${filenamePrefix}_${ts}.csv`;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  showToast(`已导出 ${list.length} 条`);
+}
+function exportInsightResults(){
+  if(!lastInsightMatches.length){showToast('先运行一次分析再导出');return;}
+  exportContactsToCsv(lastInsightMatches,'ai_search_result');
 }
 function importDataReplace(e){
   const file=e.target.files[0];if(!file)return;
@@ -1135,45 +1272,13 @@ function clearAll(){showConfirm('确认清空所有联系人数据？此操作�
 
 function getApiKey(){return localStorage.getItem(API_KEY_KEY)||'';}
 
-async function aiParse(){
-  const text=document.getElementById('ai-input').value.trim();
-  if(!text){showToast('请先输入描述文字');return;}
-  const apiKey=getApiKey();if(!apiKey){showToast('请先在设置中填入 API Key');return;}
-  const btn=document.getElementById('ai-parse-btn'),box=document.getElementById('ai-result-box');
-  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>解析中…';box.style.display='none';
-  const today=todayStr();
-  const prompt=`你是一个CRM数据解析助手。今天的日期是${today}。从以下描述中提取联系人信息，以JSON格式返回。只返回JSON，不要任何其他文字。\n\nJSON字段：name(string), age(出生年份number如1990|null), gender(male/female/other/null), marital(single/married/divorced/null), kids(yes/no/null), employment(employed/self/unemployed/student/null), visa(citizen/h1b/opt/other/na/null), mortgage(yes/no/null), openness(-3到3|null), dissatisfaction(-3到3|null), ambition(-3到3|null), event_date(string，格式YYYY-MM-DD|null——描述中提到的这件事/这次见面实际发生的日期，需要根据"今天"和描述中的相对说法如"昨天""上周三""三月五号"等推算出具体日期；如果描述里完全没提到时间，填null), parse_summary(一句话总结，中文)\n\n注意：age字段填出生年份（如1990），不是年龄数字。如果描述里说"32岁"，推算出生年份填入。\n\n描述：${text}`;
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const data=await res.json();
-    if(data.error)throw new Error(data.error.message);
-    const parsed=JSON.parse(data.content[0].text.trim().replace(/```json|```/g,'').trim());
-    if(parsed.name)document.getElementById('f-name').value=parsed.name;
-    if(parsed.age)document.getElementById('f-birth-year').value=parsed.age;
-    if(parsed.gender)document.getElementById('f-gender').value=parsed.gender;
-    if(parsed.marital)document.getElementById('f-marital').value=parsed.marital;
-    if(parsed.kids)document.getElementById('f-kids').value=parsed.kids;
-    if(parsed.employment)document.getElementById('f-employment').value=parsed.employment;
-    if(parsed.visa)document.getElementById('f-visa').value=parsed.visa;
-    if(parsed.mortgage)document.getElementById('f-mortgage').value=parsed.mortgage;
-    if(parsed.openness!=null)document.getElementById('f-openness').value=parsed.openness;
-    if(parsed.dissatisfaction!=null)document.getElementById('f-dissatisfaction').value=parsed.dissatisfaction;
-    if(parsed.ambition!=null)document.getElementById('f-ambition').value=parsed.ambition;
-    // 原文本身保留为跟进记录，而不是AI改写后的摘要
-    window._pendingNote=text;
-    window._pendingNoteDate=null;
-    let dateNote='';
-    if(parsed.event_date&&/^\d{4}-\d{2}-\d{2}$/.test(parsed.event_date)){
-      window._pendingNoteDate=parsed.event_date;
-      if(!editingId)document.getElementById('f-added-date').value=parsed.event_date;
-      dateNote=`（识别到日期：${parsed.event_date}，已自动用作${editingId?'记录':'加入日期与记录'}时间，如不对可在保存前手动改"加入日期"）`;
-    }
-    box.textContent='✦ '+(parsed.parse_summary||'解析完成，请检查字段')+dateNote;
-    box.style.display='block';showToast('解析完成');
-  }catch(e){box.textContent='解析失败：'+e.message;box.style.display='block';}
-  btn.disabled=false;btn.innerHTML='✦ AI 解析并填充';
+function clearInsight(){
+  document.getElementById('insight-query').value='';
+  const summaryEl=document.getElementById('insight-summary');
+  summaryEl.textContent='';summaryEl.style.display='none';
+  document.getElementById('insight-results').innerHTML='';
+  lastInsightMatches=[];
 }
-
 async function runInsightSearch(){
   const query=document.getElementById('insight-query').value.trim();
   if(!query){showToast('请先描述你想找的人');return;}
@@ -1192,29 +1297,44 @@ async function runInsightSearch(){
       relationshipTypes:(c.relationshipTypes||[]).map(r=>RELATIONSHIP_LABELS[r]),
       leaderTags:c.leaderTags||[],
       addedDate:c.addedDate,daysSinceLastContact:daysSince,
-      birthPlace:c.birthPlace||null,
+      location:c.location||null,birthPlace:c.birthPlace||null,
       notes:(c.notes||[]).map(n=>`[${fmtDate(n.ts)}] ${n.text}`)
     };
   });
-  const prompt=`你是一个CRM智能筛选助手。今天是${today}。下面是用户的完整联系人数据（JSON数组），每人有id/姓名/分类/阶段/关系标签/加入日期/距最近一次跟进记录的天数/出生地点/跟进记录文本。\n\n用户的筛选描述："${query}"\n\n请从数据里找出符合描述的人。只返回JSON，不要任何其他文字，格式：{"summary":"一两句话说明你是怎么理解和筛选的","matches":[{"id":"联系人id（必须是数据里真实存在的id，不能编造）","reason":"一句话说明为什么符合，尽量具体，引用跟进记录里的原话或日期"}]}。如果一个都不符合，matches返回空数组。\n\n联系人数据：${JSON.stringify(dataset)}`;
+  const prompt=`你是一个CRM智能筛选助手。今天是${today}。下面是用户的完整联系人数据（JSON数组），每人有id/姓名/分类/阶段/关系标签/加入日期/距最近一次跟进记录的天数/地点/出生地点/跟进记录文本。\n\n用户的筛选描述："${query}"\n\n请从数据里找出符合描述的人。你的整个回复必须是且只能是一个JSON对象，不要在JSON前后添加任何说明文字、开场白或markdown代码块标记。reason字段严格控制在15个字以内，不要展开引用原文、不要写完整句子，越短越好。格式：{"summary":"一两句话说明你是怎么理解和筛选的","matches":[{"id":"联系人id（必须是数据里真实存在的id，不能编造）","reason":"15字以内的极简理由"}]}。如果一个都不符合，matches返回空数组。\n\n联系人数据：${JSON.stringify(dataset)}`;
+  let rawText='';
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:32000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     if(data.error)throw new Error(data.error.message);
-    const parsed=JSON.parse(data.content[0].text.trim().replace(/```json|```/g,'').trim());
+    rawText=data.content[0].text;
+    const parsed=parseAiJson(rawText);
     summaryEl.textContent='✦ '+(parsed.summary||'');
     summaryEl.style.display='block';
     const matches=(parsed.matches||[]).filter(m=>contacts.some(c=>c.id===m.id));
     if(!matches.length){
       resultsEl.innerHTML='<div class="empty-state"><p>没有找到符合条件的人</p><small>换个说法再试试</small></div>';
+      lastInsightMatches=[];
     }else{
       resultsEl.innerHTML=`<div class="section-title">找到 ${matches.length} 人</div>`+matches.map(m=>renderContactCard(contacts.find(c=>c.id===m.id),m.reason)).join('');
+      lastInsightMatches=matches.map(m=>contacts.find(c=>c.id===m.id)).filter(Boolean);
     }
   }catch(e){
-    summaryEl.textContent='分析失败：'+e.message;
-    summaryEl.style.display='block';
+    // 返回可能被截断了，尝试从已生成的部分内容里抢救出完整的match条目
+    const salvaged=rawText?salvagePartialMatches(rawText):[];
+    const matches=salvaged.filter(m=>m&&m.id&&contacts.some(c=>c.id===m.id));
+    if(matches.length){
+      summaryEl.textContent='⚠ 返回被截断了，下面是已经解析出来的部分结果，可能不全';
+      summaryEl.style.display='block';
+      resultsEl.innerHTML=`<div class="section-title">找到 ${matches.length} 人（可能不完整）</div>`+matches.map(m=>renderContactCard(contacts.find(c=>c.id===m.id),m.reason)).join('');
+      lastInsightMatches=matches.map(m=>contacts.find(c=>c.id===m.id)).filter(Boolean);
+    }else{
+      summaryEl.textContent='分析失败：'+e.message;
+      summaryEl.style.display='block';
+      lastInsightMatches=[];
+    }
   }
-  btn.disabled=false;btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>分析';
+  btn.disabled=false;btn.textContent='分析';
 }
 
 function showScreen(name){
@@ -1222,11 +1342,13 @@ function showScreen(name){
   document.querySelectorAll('#bottom-nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById(name+'-screen').classList.add('active');
   document.getElementById('header').style.display=name==='detail'?'none':'';
-  const idx=['dashboard','add','insight','settings'].indexOf(name);
+  document.getElementById('weekly-btn').style.display=name==='dashboard'?'':'none';
+  const idx=['dashboard','add','insight','principles','settings'].indexOf(name);
   if(idx!==-1)document.querySelectorAll('#bottom-nav button')[idx].classList.add('active');
   document.getElementById('main').scrollTop=0;
   if(name==='dashboard')renderDashboard();
   if(name==='add'&&!editingId)clearForm();
+  if(name==='principles'){renderPresetList('personal');renderPresetList('weekly');renderChat('personal');renderChat('weekly');}
 }
 
 function showToast(msg){
@@ -1244,6 +1366,57 @@ function showConfirm(text,onOk){
   cancelBtn.onclick=cleanup;
 }
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function extractJsonObject(text){
+  const start=text.indexOf('{');
+  if(start===-1)throw new Error('返回内容里没有找到JSON');
+  let depth=0,inStr=false,esc=false;
+  for(let i=start;i<text.length;i++){
+    const ch=text[i];
+    if(inStr){
+      if(esc)esc=false;
+      else if(ch==='\\')esc=true;
+      else if(ch==='"')inStr=false;
+      continue;
+    }
+    if(ch==='"'){inStr=true;continue;}
+    if(ch==='{')depth++;
+    else if(ch==='}'){depth--;if(depth===0)return text.slice(start,i+1);}
+  }
+  throw new Error('JSON内容不完整（可能是返回被截断了）');
+}
+function parseAiJson(raw){
+  return JSON.parse(extractJsonObject(String(raw).replace(/```json|```/g,'')));
+}
+function salvagePartialMatches(raw){
+  raw=String(raw).replace(/```json|```/g,'');
+  const key=raw.indexOf('"matches"');
+  if(key===-1)return[];
+  const arrStart=raw.indexOf('[',key);
+  if(arrStart===-1)return[];
+  const out=[];
+  let i=arrStart+1;
+  while(i<raw.length){
+    while(i<raw.length&&/[\s,]/.test(raw[i]))i++;
+    if(raw[i]!=='{')break;
+    let depth=0,inStr=false,esc=false,start=i,j=i;
+    for(;j<raw.length;j++){
+      const ch=raw[j];
+      if(inStr){
+        if(esc)esc=false;
+        else if(ch==='\\')esc=true;
+        else if(ch==='"')inStr=false;
+        continue;
+      }
+      if(ch==='"'){inStr=true;continue;}
+      if(ch==='{')depth++;
+      else if(ch==='}'){depth--;if(depth===0){j++;break;}}
+    }
+    if(depth!==0)break;
+    try{out.push(JSON.parse(raw.slice(start,j)));}catch(e){break;}
+    i=j;
+  }
+  return out;
+}
 
 load();renderDashboard();
 </script>
